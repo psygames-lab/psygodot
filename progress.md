@@ -3,6 +3,13 @@
 ## Last Iteration
 
 Date: 2026-05-12
+Task: Continuous runner curated examples and final documentation
+Commit: pending
+Files changed: runner data examples, runner README, root README, demo validation report
+Tests run: pending final verification
+Result: v0.1 continuous naturalistic runner demo package prepared for final verification.
+
+Date: 2026-05-12
 Task: Continuous runner automated validation, debug overlay, and timing validation
 Commit: pending
 Files changed: validation responder scene/scripts, runner debug overlay, timing validation scene/script
@@ -57,6 +64,7 @@ Result: MVP vertical slice complete pending human review.
 - Debug overlay: yes
 - Timing validation: yes
 - Known issues: Godot MCP process still needs restart or configuration refresh to read `D:\Godot\Godot.exe`; direct Godot console verification works.
+- Result: v0.1 continuous naturalistic runner demo complete pending human review.
 
 ## Next Recommended Task
 
