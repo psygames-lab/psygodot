@@ -2,7 +2,7 @@ extends Control
 
 const ReversalGameModelScript := preload("res://scripts/game/reversal_game_model.gd")
 
-var model: ReversalGameModel
+var model
 var config: Dictionary
 var episode_id := ""
 var probe_id := ""
@@ -74,7 +74,7 @@ func _start_next_episode() -> void:
 	status_label.text = "Choose one tree."
 
 func _choose(choice: String) -> void:
-	var outcome := model.choose(choice)
+	var outcome: Dictionary = model.choose(choice)
 	var response_event := PsychRuntime.log_event_with_marker("gameplay", "response_made", {
 		"condition": condition,
 		"response": {"choice": choice}

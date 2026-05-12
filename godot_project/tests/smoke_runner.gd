@@ -4,12 +4,12 @@ const ReversalGameModelScript := preload("res://scripts/game/reversal_game_model
 
 func _ready() -> void:
 	var config := _load_json("res://configs/study_config.json")
-	var model: ReversalGameModel = ReversalGameModelScript.new()
+	var model = ReversalGameModelScript.new()
 	model.configure(config)
 	PsychRuntime.start_session(config)
 
 	for index in range(int(config.get("episode_count", 30))):
-		var condition := model.next_episode_condition()
+		var condition: Dictionary = model.next_episode_condition()
 		var episode_id := PsychRuntime.start_episode("reversal_learning_round", condition)
 		if condition["rule_shifted"]:
 			PsychRuntime.log_event_with_marker("condition", "rule_shift", {
@@ -22,7 +22,7 @@ func _ready() -> void:
 		PsychRuntime.log_event("gameplay", "decision_onset", {"condition": condition})
 
 		var choice := "A" if index % 3 != 1 else "B"
-		var outcome := model.choose(choice)
+		var outcome: Dictionary = model.choose(choice)
 		var response_event := PsychRuntime.log_event_with_marker("gameplay", "response_made", {
 			"condition": condition,
 			"response": {"choice": choice}

@@ -1,10 +1,17 @@
 extends Node
 
-var session_manager := SessionManager.new()
-var episode_manager := EpisodeManager.new()
-var probe_manager := ProbeManager.new()
-var trigger_manager := TriggerManager.new()
-var logger := BehaviorLogger.new()
+const BehaviorLoggerScript := preload("res://addons/psych_instrumentation/behavior_logger.gd")
+const EpisodeManagerScript := preload("res://addons/psych_instrumentation/episode_manager.gd")
+const EventTaggerScript := preload("res://addons/psych_instrumentation/event_tagger.gd")
+const ProbeManagerScript := preload("res://addons/psych_instrumentation/probe_manager.gd")
+const SessionManagerScript := preload("res://addons/psych_instrumentation/session_manager.gd")
+const TriggerManagerScript := preload("res://addons/psych_instrumentation/trigger_manager.gd")
+
+var session_manager = SessionManagerScript.new()
+var episode_manager = EpisodeManagerScript.new()
+var probe_manager = ProbeManagerScript.new()
+var trigger_manager = TriggerManagerScript.new()
+var logger = BehaviorLoggerScript.new()
 var session_active := false
 
 func start_session(config: Dictionary) -> Dictionary:
@@ -33,8 +40,8 @@ func start_episode(episode_type: String, metadata: Dictionary) -> String:
 	return episode["episode_id"]
 
 func end_episode(episode_id: String, metadata: Dictionary) -> void:
-	var condition := episode_manager.current_metadata
-	var ended_episode := episode_manager.end_episode(metadata)
+	var condition: Dictionary = episode_manager.current_metadata
+	var ended_episode: Dictionary = episode_manager.end_episode(metadata)
 	log_event("episode", "episode_end", {
 		"episode_id": episode_id,
 		"condition": condition,
@@ -53,8 +60,8 @@ func start_probe(probe_type: String, metadata: Dictionary) -> String:
 	return probe["probe_id"]
 
 func end_probe(probe_id: String, metadata: Dictionary) -> void:
-	var condition := probe_manager.current_config.get("condition", {})
-	var ended_probe := probe_manager.end_probe(metadata)
+	var condition: Dictionary = probe_manager.current_config.get("condition", {})
+	var ended_probe: Dictionary = probe_manager.end_probe(metadata)
 	log_event("probe", "probe_end", {
 		"episode_id": episode_manager.current_episode_id,
 		"probe_id": probe_id,
@@ -64,7 +71,7 @@ func end_probe(probe_id: String, metadata: Dictionary) -> void:
 	probe_manager.clear()
 
 func log_event(event_type: String, event_tag: String, payload: Dictionary) -> Dictionary:
-	if not EventTagger.is_valid(event_tag):
+	if not EventTaggerScript.is_valid(event_tag):
 		push_warning("Unknown PsyGodot event tag: %s" % event_tag)
 
 	var now := Time.get_datetime_dict_from_system(true)
