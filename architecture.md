@@ -14,3 +14,7 @@ Game scenes may call `PsychRuntime`. Instrumentation scripts must not depend on 
 ## MVP Data Flow
 
 `ReversalGameModel.choose()` returns gameplay outcome. The scene wraps that outcome with episode/probe context, logs psychological event tags, emits mock markers, and flushes JSONL. Python scripts validate the JSONL and compute derived CSV rows.
+
+## Continuous Runner Extension
+
+The runner demo reuses the existing instrumentation layer. Runner gameplay scripts remain separate from the runner event mapper and probe controller so the game can run without becoming a trial-based experiment runner.

@@ -3,6 +3,13 @@
 ## Last Iteration
 
 Date: 2026-05-12
+Task: Continuous runner docs, analysis, and playable runner base
+Commit: pending
+Files changed: root runner doc links, runner docs, runner tasks, runner Python validator/metrics, minimal Godot runner scene and scripts
+Tests run: Python unittest discover (24 tests), Godot 4.6.2 console headless RunnerDemo scene
+Result: Runner documentation scaffold, runner event validation, runner metric extraction, and a 65-second headless playable runner baseline are ready for commit.
+
+Date: 2026-05-12
 Task: Continuous runner development preflight
 Commit: 6b6ddd5
 Files changed: progress.md, docs/superpowers/plans/2026-05-12-continuous-runner-demo.md
@@ -25,6 +32,18 @@ Result: MVP vertical slice complete pending human review.
 - Trigger mock: yes
 - Known issues: timing precision is not externally validated; MVP only supports software timestamps and mock markers.
 
+## Continuous Runner Status
+
+- Runner docs: yes
+- Playable runner: yes, minimal 3-lane headless-verified baseline
+- Runner instrumentation: no
+- Runner probes: no
+- Automated responder: no
+- Runner metrics: yes, Python extractor implemented with tests
+- Debug overlay: no
+- Timing validation: no
+- Known issues: Godot MCP process still needs restart or configuration refresh to read `D:\Godot\Godot.exe`; direct Godot console verification works.
+
 ## Next Recommended Task
 
-Review the MVP vertical slice, then decide whether to harden data QA or begin addon packaging.
+Continue continuous runner instrumentation and psychological probe integration.

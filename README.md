@@ -22,3 +22,7 @@ The first MVP proves this closed loop:
 - Backend dashboard.
 - Real hardware triggers.
 - Timing precision claims without external validation.
+
+## Continuous Runner Demo
+
+The continuous runner demo lives under `godot_project/demo/continuous_runner/`. It validates whether PsyGodot can instrument continuous naturalistic gameplay into episodes, probes, event tags, raw JSONL, mock markers, and derived metrics.

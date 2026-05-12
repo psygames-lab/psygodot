@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_track"]
+albedo_color = Color(0.09, 0.1, 0.11, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_track"]
+material = SubResource("StandardMaterial3D_track")
+size = Vector3(10, 0.12, 18)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_line"]
+albedo_color = Color(0.75, 0.8, 0.82, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_line"]
+material = SubResource("StandardMaterial3D_line")
+size = Vector3(0.08, 0.03, 18)
+
+[node name="TrackSegment" type="Node3D"]
+
+[node name="Road" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_track")
+
+[node name="LaneLineLeft" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5, 0.08, 0)
+mesh = SubResource("BoxMesh_line")
+skeleton = NodePath("")
+
+[node name="LaneLineRight" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.5, 0.08, 0)
+mesh = SubResource("BoxMesh_line")
+skeleton = NodePath("")

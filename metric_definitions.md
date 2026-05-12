@@ -9,3 +9,7 @@ All metrics are derived from raw JSONL events.
 - `switch_after_loss`: current choice differs from previous choice after previous episode was not rewarded.
 - `perseverative_error`: after a rule shift, choosing the previously rewarded option and receiving negative feedback.
 - `learning_slope`: difference between late-window and early-window reward rates within a session.
+
+## Runner Metrics
+
+Runner-specific metrics are documented in `godot_project/demo/continuous_runner/docs/metric_definitions_runner.md`.
