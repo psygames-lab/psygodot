@@ -3,6 +3,13 @@
 ## Last Iteration
 
 Date: 2026-05-12
+Task: Continuous runner development preflight
+Commit: 6b6ddd5
+Files changed: progress.md, docs/superpowers/plans/2026-05-12-continuous-runner-demo.md
+Tests run: Python unittest, Godot 4.6.2 direct headless smoke scene
+Result: Existing PsyGodot vertical slice is healthy. Godot MCP is installed, but the current MCP process still resolves `C:\Program Files\Godot\Godot.exe`; `D:\Godot\Godot.exe` is now available for MCP after restart and direct headless verification works now.
+
+Date: 2026-05-12
 Task: Instrumentation-first MVP vertical slice
 Commit: e65999a
 Files changed: Godot project, instrumentation scripts, analysis scripts, examples, acceptance tests
