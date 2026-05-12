@@ -16,8 +16,8 @@ Result: Ready for instrumentation-first MVP execution.
 - JSONL logging: no
 - Metrics extraction: no
 - Trigger mock: no
-- Known issues: repository scaffold has not been created yet.
+- Known issues: Python event schema validation has not been implemented yet.
 
 ## Next Recommended Task
 
-Create repository scaffold and freeze MVP positioning docs.
+Python event schema validation.

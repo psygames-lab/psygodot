@@ -6,7 +6,7 @@
       "id": "T001",
       "title": "Create repository control scaffold",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Root docs exist",
         "tasks.json and progress.md exist",
