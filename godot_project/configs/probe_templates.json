@@ -1,0 +1,12 @@
+{
+  "reversal_choice": {
+    "probe_type": "reversal_choice",
+    "expected_events": [
+      "cue_onset",
+      "decision_onset",
+      "response_made",
+      "feedback_positive",
+      "feedback_negative"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "cue_onset": 101,
+  "response_made": 102,
+  "feedback_positive": 103,
+  "feedback_negative": 104,
+  "rule_shift": 110
+}

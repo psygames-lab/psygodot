@@ -1,0 +1,7 @@
+{
+  "conditions": [
+    {"start_episode": 1, "rule_state": "A_rewarded"},
+    {"start_episode": 11, "rule_state": "B_rewarded"},
+    {"start_episode": 21, "rule_state": "A_rewarded"}
+  ]
+}
