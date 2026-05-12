@@ -155,7 +155,7 @@
       "id": "R006",
       "title": "Runner Instrumentation And Event Tags",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Runner tags are added to EventTagger.VALID_TAGS",
         "Runner marker codes are added to TriggerManager.marker_map",
@@ -167,7 +167,7 @@
       "id": "R007",
       "title": "Psychological Probe Controller",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "RunnerProbeController supports obstacle, reward, punishment, risky path, and conflict probes",
         "Probe event sequences include start, onset, response or timeout, outcome, feedback, and end",
