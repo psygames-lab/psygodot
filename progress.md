@@ -3,11 +3,11 @@
 ## Last Iteration
 
 Date: 2026-05-12
-Task: Create repository control scaffold.
-Commit: ec3e3e1
-Files changed: .gitignore, README.md, acceptance_tests.md, architecture.md, event_schema.md, metric_definitions.md, prd.md, progress.md, tasks.json
-Tests run: tasks.json JSON parse; git diff --check; scaffold file existence check
-Result: Repository control scaffold complete; ready for Python event schema validation.
+Task: Instrumentation-first MVP vertical slice
+Commit: e65999a
+Files changed: Godot project, instrumentation scripts, analysis scripts, examples, acceptance tests
+Tests run: Python unittest, JSONL schema validation, metric extraction, Godot smoke scene
+Result: MVP vertical slice complete pending human review.
 
 ## Current Working State
 

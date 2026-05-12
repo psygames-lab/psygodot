@@ -2,37 +2,37 @@
 
 ## Project Scaffold
 
-- [ ] Root docs exist.
-- [ ] Godot project exists under `godot_project/`.
-- [ ] Analysis scripts exist under `analysis/`.
+- [x] Root docs exist.
+- [x] Godot project exists under `godot_project/`.
+- [x] Analysis scripts exist under `analysis/`.
 
 ## Runtime Lifecycle
 
-- [ ] Session start is logged.
-- [ ] Session end is logged.
-- [ ] `session_manifest.json` is written.
+- [x] Session start is logged.
+- [x] Session end is logged.
+- [x] `session_manifest.json` is written.
 
 ## Event Logging
 
-- [ ] Every event has required schema fields.
-- [ ] JSONL has one valid JSON object per line.
-- [ ] Choice, feedback, rule shift, and marker events are present.
+- [x] Every event has required schema fields.
+- [x] JSONL has one valid JSON object per line.
+- [x] Choice, feedback, rule shift, and marker events are present.
 
 ## Episode / Probe Flow
 
-- [ ] `episode_start` precedes `episode_end`.
-- [ ] `probe_start` precedes `probe_end`.
-- [ ] Choice and feedback events include `episode_id` and `probe_id`.
+- [x] `episode_start` precedes `episode_end`.
+- [x] `probe_start` precedes `probe_end`.
+- [x] Choice and feedback events include `episode_id` and `probe_id`.
 
 ## Metrics
 
-- [ ] `derived_metrics_example.csv` is generated from raw JSONL.
-- [ ] `choice_rt_ms` is computed.
-- [ ] `stay_after_win` is computed.
-- [ ] `switch_after_loss` is computed.
-- [ ] `perseverative_error` is computed.
+- [x] `derived_metrics_example.csv` is generated from raw JSONL.
+- [x] `choice_rt_ms` is computed.
+- [x] `stay_after_win` is computed.
+- [x] `switch_after_loss` is computed.
+- [x] `perseverative_error` is computed.
 
 ## Trigger Mock
 
-- [ ] `marker_sent` is logged.
-- [ ] Marker events link to source event ids.
+- [x] `marker_sent` is logged.
+- [x] Marker events link to source event ids.
