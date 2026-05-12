@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-from collections import defaultdict
 from pathlib import Path
 
 
@@ -23,7 +22,7 @@ FIELDNAMES = [
 
 def read_events(path: str | Path) -> list[dict]:
     events: list[dict] = []
-    with Path(path).open("r", encoding="utf-8") as handle:
+    with Path(path).open("r", encoding="utf-8-sig") as handle:
         for line in handle:
             stripped = line.strip()
             if stripped:
@@ -39,47 +38,62 @@ def _bool_text(value: bool | None) -> str:
 
 def compute_metrics(path: str | Path) -> list[dict[str, str]]:
     events = read_events(path)
-    by_episode: dict[str, list[dict]] = defaultdict(list)
+    by_probe: dict[tuple[str, str, str], list[dict]] = {}
     for event in events:
+        session_id = event.get("session_id")
         episode_id = event.get("episode_id")
-        if episode_id:
-            by_episode[episode_id].append(event)
+        probe_id = event.get("probe_id")
+        if session_id and episode_id and probe_id:
+            key = (session_id, episode_id, probe_id)
+            by_probe.setdefault(key, []).append(event)
 
     rows: list[dict[str, str]] = []
-    previous_choice: str | None = None
-    previous_rewarded: bool | None = None
+    previous_by_session: dict[str, tuple[str, bool]] = {}
 
-    for episode_id in sorted(by_episode):
-        episode_events = sorted(by_episode[episode_id], key=lambda item: item.get("timestamp_usec", 0))
-        decision_onset = next((item for item in episode_events if item.get("event_tag") == "decision_onset"), None)
-        response = next((item for item in episode_events if item.get("event_tag") == "response_made"), None)
-        positive = any(item.get("event_tag") == "feedback_positive" for item in episode_events)
-        negative = any(item.get("event_tag") == "feedback_negative" for item in episode_events)
+    for (session_id, episode_id, probe_id), probe_events in by_probe.items():
+        ordered_events = sorted(probe_events, key=lambda item: item.get("timestamp_usec", 0))
+        decision_onset = next((item for item in ordered_events if item.get("event_tag") == "decision_onset"), None)
+        response = next((item for item in ordered_events if item.get("event_tag") == "response_made"), None)
+        positive = any(item.get("event_tag") == "feedback_positive" for item in ordered_events)
+        negative = any(item.get("event_tag") == "feedback_negative" for item in ordered_events)
 
         if response is None:
             continue
 
         condition = response.get("condition", {})
         choice = response.get("response", {}).get("choice", "")
-        probe_id = response.get("probe_id", "")
-        session_id = response.get("session_id", "")
         rule_state = condition.get("rule_state", "")
         previous_rewarded_choice = condition.get("previous_rewarded_choice", "")
 
         rt_ms = ""
         if decision_onset is not None:
             delta_usec = response.get("timestamp_usec", 0) - decision_onset.get("timestamp_usec", 0)
-            rt_ms = f"{delta_usec / 1000.0:.3f}"
+            if delta_usec >= 0:
+                rt_ms = f"{delta_usec / 1000.0:.3f}"
 
         rewarded = positive and not negative
         stay_after_win = None
         switch_after_loss = None
+        previous = previous_by_session.get(session_id)
+        previous_choice = previous[0] if previous is not None else None
+        previous_rewarded = previous[1] if previous is not None else None
         if previous_choice is not None and previous_rewarded is True:
             stay_after_win = choice == previous_choice
         if previous_choice is not None and previous_rewarded is False:
             switch_after_loss = choice != previous_choice
 
-        perseverative_error = bool(negative and previous_rewarded_choice and choice == previous_rewarded_choice)
+        previous_rule_rejected = bool(
+            previous_rewarded_choice
+            and rule_state
+            and not rule_state.startswith(f"{previous_rewarded_choice}_rewarded")
+        )
+        after_rule_shift = bool(condition.get("rule_shifted") or previous_rule_rejected)
+        perseverative_error = bool(
+            negative
+            and after_rule_shift
+            and previous_rewarded_choice
+            and choice == previous_rewarded_choice
+        )
 
         rows.append(
             {
@@ -96,8 +110,7 @@ def compute_metrics(path: str | Path) -> list[dict[str, str]]:
             }
         )
 
-        previous_choice = choice
-        previous_rewarded = rewarded
+        previous_by_session[session_id] = (choice, rewarded)
 
     return rows
 
@@ -114,9 +127,10 @@ def main() -> int:
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
-    write_metrics(compute_metrics(args.input), args.output)
-    print(f"wrote={args.output}")
-    return 0
+    rows = compute_metrics(args.input)
+    write_metrics(rows, args.output)
+    print(f"wrote={args.output} rows={len(rows)}")
+    return 1 if not rows else 0
 
 
 if __name__ == "__main__":
