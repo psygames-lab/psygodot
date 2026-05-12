@@ -20,3 +20,7 @@ func end_probe(metadata: Dictionary) -> Dictionary:
 		"probe_id": current_probe_id,
 		"metadata": metadata.duplicate(true)
 	}
+
+func clear() -> void:
+	current_probe_id = ""
+	current_config = {}

@@ -22,3 +22,7 @@ func end_episode(metadata: Dictionary) -> Dictionary:
 		"episode_index": current_episode_index,
 		"metadata": metadata.duplicate(true)
 	}
+
+func clear() -> void:
+	current_episode_id = ""
+	current_metadata = {}

@@ -19,6 +19,8 @@ func end_session(reason: String = "completed") -> void:
 	if session_active:
 		log_event("session", "session_end", {"metadata": {"reason": reason}})
 	session_active = false
+	probe_manager.clear()
+	episode_manager.clear()
 	logger.close()
 
 func start_episode(episode_type: String, metadata: Dictionary) -> String:
@@ -31,11 +33,14 @@ func start_episode(episode_type: String, metadata: Dictionary) -> String:
 	return episode["episode_id"]
 
 func end_episode(episode_id: String, metadata: Dictionary) -> void:
+	var condition := episode_manager.current_metadata
+	var ended_episode := episode_manager.end_episode(metadata)
 	log_event("episode", "episode_end", {
 		"episode_id": episode_id,
-		"condition": episode_manager.current_metadata,
-		"metadata": episode_manager.end_episode(metadata)
+		"condition": condition,
+		"metadata": ended_episode
 	})
+	episode_manager.clear()
 
 func start_probe(probe_type: String, metadata: Dictionary) -> String:
 	var probe := probe_manager.start_probe(probe_type, metadata)
@@ -48,12 +53,15 @@ func start_probe(probe_type: String, metadata: Dictionary) -> String:
 	return probe["probe_id"]
 
 func end_probe(probe_id: String, metadata: Dictionary) -> void:
+	var condition := probe_manager.current_config.get("condition", {})
+	var ended_probe := probe_manager.end_probe(metadata)
 	log_event("probe", "probe_end", {
 		"episode_id": episode_manager.current_episode_id,
 		"probe_id": probe_id,
-		"condition": probe_manager.current_config.get("condition", {}),
-		"metadata": probe_manager.end_probe(metadata)
+		"condition": condition,
+		"metadata": ended_probe
 	})
+	probe_manager.clear()
 
 func log_event(event_type: String, event_tag: String, payload: Dictionary) -> Dictionary:
 	if not EventTagger.is_valid(event_tag):
