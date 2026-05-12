@@ -17,7 +17,7 @@
       "id": "T002",
       "title": "Add Python event schema validation",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Validator accepts valid JSONL",
         "Validator rejects missing required fields",
@@ -28,7 +28,7 @@
       "id": "T003",
       "title": "Add Python metric extraction",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Metrics include choice_rt_ms",
         "Metrics include stay_after_win",
@@ -40,7 +40,7 @@
       "id": "T004",
       "title": "Create Godot project skeleton",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Godot project.godot exists",
         "Main scene exists",
@@ -51,7 +51,7 @@
       "id": "T005",
       "title": "Implement instrumentation runtime",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "PsychRuntime starts and ends sessions",
         "BehaviorLogger writes JSONL",
@@ -62,7 +62,7 @@
       "id": "T006",
       "title": "Implement smoke reversal-learning event stream",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Smoke scene generates 30 episodes",
         "raw_events_example.jsonl validates",
@@ -73,7 +73,7 @@
       "id": "T007",
       "title": "Implement minimal playable prototype UI",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Player can choose Tree A or Tree B",
         "Feedback is displayed",
@@ -84,7 +84,7 @@
       "id": "T008",
       "title": "Generate curated example outputs",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "data_examples/raw_events_example.jsonl exists",
         "data_examples/derived_metrics_example.csv exists",

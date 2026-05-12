@@ -11,13 +11,13 @@ Result: Repository control scaffold complete; ready for Python event schema vali
 
 ## Current Working State
 
-- Godot project opens: no
-- Prototype playable: no
-- JSONL logging: no
-- Metrics extraction: no
-- Trigger mock: no
-- Known issues: Python event schema validation has not been implemented yet.
+- Godot project opens: yes
+- Prototype playable: yes
+- JSONL logging: yes
+- Metrics extraction: yes
+- Trigger mock: yes
+- Known issues: timing precision is not externally validated; MVP only supports software timestamps and mock markers.
 
 ## Next Recommended Task
 
-Python event schema validation.
+Review the MVP vertical slice, then decide whether to harden data QA or begin addon packaging.
