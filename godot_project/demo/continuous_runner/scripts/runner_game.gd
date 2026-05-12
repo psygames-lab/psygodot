@@ -12,6 +12,7 @@ const RewardSpawnerScript := preload("res://demo/continuous_runner/scripts/rewar
 const HazardSpawnerScript := preload("res://demo/continuous_runner/scripts/hazard_spawner.gd")
 const RunnerEventMapperScript := preload("res://demo/continuous_runner/scripts/runner_event_mapper.gd")
 const RunnerProbeControllerScript := preload("res://demo/continuous_runner/scripts/runner_probe_controller.gd")
+const RunnerDebugOverlayScript := preload("res://demo/continuous_runner/scripts/runner_debug_overlay.gd")
 
 const DESPAWN_Z := 10.0
 const HEADLESS_EXIT_SEC := 65.0
@@ -23,6 +24,7 @@ var player
 var track_container: Node3D
 var object_container: Node3D
 var ui_layer: CanvasLayer
+var debug_overlay: CanvasLayer
 var time_label: Label
 var score_label: Label
 var speed_label: Label
@@ -140,6 +142,10 @@ func _build_ui() -> void:
 	panel.add_child(score_label)
 	panel.add_child(speed_label)
 	panel.add_child(feedback_label)
+
+	debug_overlay = RunnerDebugOverlayScript.new()
+	debug_overlay.configure(self)
+	add_child(debug_overlay)
 
 func _make_label(text: String) -> Label:
 	var label := Label.new()

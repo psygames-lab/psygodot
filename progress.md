@@ -3,6 +3,13 @@
 ## Last Iteration
 
 Date: 2026-05-12
+Task: Continuous runner automated validation, debug overlay, and timing validation
+Commit: pending
+Files changed: validation responder scene/scripts, runner debug overlay, timing validation scene/script
+Tests run: Python unittest discover (28 tests), RunnerDemo headless, ValidationRunner headless, TimingValidation headless, runner JSONL validation, timing analysis
+Result: Automated responder scenarios generate four valid JSONL logs; runner overlay is wired into the playable scene; timing validation logs 100 flash events and 100 linked mock markers with zero missing markers.
+
+Date: 2026-05-12
 Task: Continuous runner instrumentation, probes, and validation utilities
 Commit: pending
 Files changed: runner event mapper, runner probe controller, runner game instrumentation, runner event tags, runner marker map, runner validation summary tools
@@ -45,10 +52,10 @@ Result: MVP vertical slice complete pending human review.
 - Playable runner: yes, minimal 3-lane headless-verified baseline
 - Runner instrumentation: yes
 - Runner probes: yes
-- Automated responder: no
+- Automated responder: yes
 - Runner metrics: yes, Python extractor implemented with tests
-- Debug overlay: no
-- Timing validation: no
+- Debug overlay: yes
+- Timing validation: yes
 - Known issues: Godot MCP process still needs restart or configuration refresh to read `D:\Godot\Godot.exe`; direct Godot console verification works.
 
 ## Next Recommended Task

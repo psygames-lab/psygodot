@@ -179,7 +179,7 @@
       "id": "R008",
       "title": "Automated Responder And Validation Runner",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "ValidationRunner scene exists",
         "Scripted responder supports configured seed, error rate, and risky choice probability",
@@ -191,7 +191,7 @@
       "id": "R009",
       "title": "Runner Debug Overlay",
       "priority": "P0",
-      "status": "todo",
+      "status": "done",
       "acceptance": [
         "Debug overlay displays session, episode, probe, event, marker, player, log, and logger status",
         "F3 toggles overlay",
