@@ -3,11 +3,11 @@
 ## Last Iteration
 
 Date: 2026-05-12
-Task: Planning approved; implementation not started.
-Commit: none
-Files changed: none
-Tests run: none
-Result: Ready for instrumentation-first MVP execution.
+Task: Create repository control scaffold.
+Commit: ec3e3e1
+Files changed: .gitignore, README.md, acceptance_tests.md, architecture.md, event_schema.md, metric_definitions.md, prd.md, progress.md, tasks.json
+Tests run: tasks.json JSON parse; git diff --check; scaffold file existence check
+Result: Repository control scaffold complete; ready for Python event schema validation.
 
 ## Current Working State
 
