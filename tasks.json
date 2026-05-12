@@ -1,0 +1,95 @@
+{
+  "project": "psygodot",
+  "current_phase": "instrumentation_first_mvp",
+  "tasks": [
+    {
+      "id": "T001",
+      "title": "Create repository control scaffold",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Root docs exist",
+        "tasks.json and progress.md exist",
+        "MVP positioning rejects trial-first design"
+      ]
+    },
+    {
+      "id": "T002",
+      "title": "Add Python event schema validation",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Validator accepts valid JSONL",
+        "Validator rejects missing required fields",
+        "Validator checks marker linked_event_id"
+      ]
+    },
+    {
+      "id": "T003",
+      "title": "Add Python metric extraction",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Metrics include choice_rt_ms",
+        "Metrics include stay_after_win",
+        "Metrics include switch_after_loss",
+        "Metrics include perseverative_error"
+      ]
+    },
+    {
+      "id": "T004",
+      "title": "Create Godot project skeleton",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Godot project.godot exists",
+        "Main scene exists",
+        "Godot MCP project info succeeds"
+      ]
+    },
+    {
+      "id": "T005",
+      "title": "Implement instrumentation runtime",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "PsychRuntime starts and ends sessions",
+        "BehaviorLogger writes JSONL",
+        "Episode and Probe ids attach to gameplay events"
+      ]
+    },
+    {
+      "id": "T006",
+      "title": "Implement smoke reversal-learning event stream",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Smoke scene generates 30 episodes",
+        "raw_events_example.jsonl validates",
+        "rule_shift events are present"
+      ]
+    },
+    {
+      "id": "T007",
+      "title": "Implement minimal playable prototype UI",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "Player can choose Tree A or Tree B",
+        "Feedback is displayed",
+        "Scene uses same ReversalGameModel as smoke runner"
+      ]
+    },
+    {
+      "id": "T008",
+      "title": "Generate curated example outputs",
+      "priority": "P0",
+      "status": "todo",
+      "acceptance": [
+        "data_examples/raw_events_example.jsonl exists",
+        "data_examples/derived_metrics_example.csv exists",
+        "Examples are generated from the smoke scene"
+      ]
+    }
+  ]
+}

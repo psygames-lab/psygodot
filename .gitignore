@@ -1,0 +1,12 @@
+.godot/
+.import/
+*.tmp
+*.log
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+godot_project/user_data/
+godot_project/.godot/
+data/
+*.translation
