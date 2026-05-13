@@ -215,7 +215,7 @@ func _add_spikes(segment: Node3D, lanes: Array, local_z: float) -> void:
 			spike.material_override = hazard_mat
 			spike.position = Vector3((i - 1) * 0.35, -0.1, 0.0)
 			root.add_child(spike)
-		_add_area(segment, "spikes", int(lane), local_z, Vector3(1.45, 0.85, 1.1), 0.46, root)
+		_add_area(segment, "spikes", int(lane), local_z, Vector3(1.18, 0.68, 0.9), 0.38, root)
 
 func _add_block(segment: Node3D, lane: int, local_z: float) -> void:
 	var block := MeshInstance3D.new()
@@ -224,7 +224,7 @@ func _add_block(segment: Node3D, lane: int, local_z: float) -> void:
 	block.mesh = mesh
 	block.material_override = hazard_mat
 	block.position.y = 0.3
-	_add_area(segment, "block", lane, local_z, Vector3(1.7, 1.85, 1.2), 0.88, block)
+	_add_area(segment, "block", lane, local_z, Vector3(1.24, 1.5, 0.92), 0.82, block)
 
 func _add_gap(segment: Node3D, lane: int, local_z: float) -> void:
 	var pit := MeshInstance3D.new()
@@ -233,7 +233,7 @@ func _add_gap(segment: Node3D, lane: int, local_z: float) -> void:
 	pit.mesh = mesh
 	pit.material_override = _mat(Color(0.03, 0.025, 0.02), 0.95)
 	pit.position.y = -0.62
-	_add_area(segment, "gap", lane, local_z, Vector3(2.5, 0.9, 2.3), 0.12, pit)
+	_add_area(segment, "gap", lane, local_z, Vector3(1.3, 0.46, 1.55), 0.08, pit)
 
 func _add_low_gate(segment: Node3D, lane: int, local_z: float) -> void:
 	var gate := Node3D.new()
@@ -252,4 +252,4 @@ func _add_low_gate(segment: Node3D, lane: int, local_z: float) -> void:
 		post.material_override = moss_mat
 		post.position = Vector3(x, -0.45, 0.0)
 		gate.add_child(post)
-	_add_area(segment, "low_gate", lane, local_z, Vector3(2.25, 0.7, 0.85), 1.55, gate)
+	_add_area(segment, "low_gate", lane, local_z, Vector3(1.42, 0.5, 0.62), 1.58, gate)

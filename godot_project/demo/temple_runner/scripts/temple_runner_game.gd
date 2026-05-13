@@ -8,6 +8,7 @@ const AudioScript := preload("res://demo/temple_runner/scripts/audio_manager.gd"
 const JuiceScript := preload("res://demo/temple_runner/scripts/juice_fx.gd")
 const TelemetryScript := preload("res://demo/temple_runner/scripts/runner_telemetry.gd")
 const ResponderScript := preload("res://demo/temple_runner/scripts/scripted_runner_responder.gd")
+const HazardContactRules := preload("res://demo/temple_runner/scripts/hazard_contact_rules.gd")
 
 const MODE_TITLE := "title"
 const MODE_PLAYING := "playing"
@@ -279,7 +280,7 @@ func _on_runner_area_touched(area: Area3D) -> void:
 		hud.show_flash("+%d GEM" % reward, Color(0.98, 0.72, 0.18))
 		juice.reward_pop(self, area.global_position, "+%d" % reward, Color(0.98, 0.72, 0.18))
 		return
-	if _hazard_was_cleared(kind):
+	if _hazard_was_cleared(area):
 		var clear_reward: int = state.clear_hazard(kind)
 		_log_gameplay("successful_avoidance", area, {"reward": clear_reward})
 		_log_feedback("feedback_positive", area, {"reason": "successful_avoidance", "reward": clear_reward})
@@ -296,12 +297,10 @@ func _on_runner_area_touched(area: Area3D) -> void:
 	hud.show_flash("HIT", Color(1.0, 0.18, 0.12))
 	juice.shake(0.16, 0.35)
 
-func _hazard_was_cleared(kind: String) -> bool:
-	if kind == "gap":
-		return player.position.y > 0.2 or player.velocity.y > 0.0
-	if kind == "low_gate":
-		return player.is_sliding()
-	return false
+func _hazard_was_cleared(area: Area3D) -> bool:
+	var kind := String(area.get_meta("runner_kind", ""))
+	var hazard_lane := int(area.get_meta("runner_lane", 0))
+	return HazardContactRules.was_cleared(kind, player.position, player.velocity, player.is_sliding(), hazard_lane)
 
 func _on_state_changed() -> void:
 	if hud:
