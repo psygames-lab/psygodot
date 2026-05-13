@@ -83,7 +83,13 @@ class ArenaSurvivorStaticTests(unittest.TestCase):
             "_flash_player_damage",
             "_update_enemy_health_bar",
             "_update_visual_validation",
+            "--arena-screenshot",
+            "arena_visual_check.png",
             "visual_effect_count",
+            "floor_sprite.z_index = -100",
+            "actor_root.z_index = 10",
+            "bullet_root.z_index = 30",
+            "effect_root.z_index = 40",
         ]
         for token in required_tokens:
             self.assertIn(token, source)

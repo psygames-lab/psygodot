@@ -14,8 +14,8 @@
     "feedback_positive": 54,
     "pickup_spawn": 27,
     "pickup_collected": 25,
-    "probe_start": 13,
-    "probe_end": 13,
+    "probe_start": 12,
+    "probe_end": 12,
     "upgrade_choice_onset": 2,
     "upgrade_selected": 2,
     "wave_end": 1,
@@ -31,28 +31,28 @@
     "input": 5,
     "frame": 1800,
     "feedback": 54,
-    "probe": 26
+    "probe": 24
   },
   "metric_ranges": {
     "total_run_time_ms": {
-      "min": 29974.35,
-      "max": 29974.35
+      "min": 29974.754,
+      "max": 29974.754
     },
     "survival_time_ms": {
-      "min": 29974.35,
-      "max": 29974.35
+      "min": 29974.754,
+      "max": 29974.754
     },
     "frame_sample_count": {
       "min": 1800.0,
       "max": 1800.0
     },
     "mean_speed": {
-      "min": 229.872223,
-      "max": 229.872223
+      "min": 229.872222,
+      "max": 229.872222
     },
     "mean_nearest_enemy_distance": {
-      "min": 296.373229,
-      "max": 296.373229
+      "min": 295.98959,
+      "max": 295.98959
     },
     "damage_count": {
       "min": 0.0,
@@ -67,8 +67,8 @@
       "max": 0.925926
     },
     "weapon_fire_rate_per_min": {
-      "min": 164.14034,
-      "max": 164.14034
+      "min": 164.138128,
+      "max": 164.138128
     },
     "projectile_hit_rate": {
       "min": 0.829268,

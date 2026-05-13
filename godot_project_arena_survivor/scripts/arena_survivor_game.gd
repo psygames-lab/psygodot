@@ -34,6 +34,8 @@ var pickups: Array[Dictionary] = []
 var rng := RandomNumberGenerator.new()
 var validation_mode := false
 var validation_elapsed := 0.0
+var screenshot_mode := false
+var screenshot_taken := false
 var telemetry
 var music_player: AudioStreamPlayer
 var shot_player: AudioStreamPlayer
@@ -65,6 +67,7 @@ var last_wave_logged := 0
 var session_closed := false
 
 func _ready() -> void:
+	screenshot_mode = _is_screenshot_run()
 	validation_mode = _is_validation_run()
 	_ensure_input_actions()
 	_build_scene()
@@ -107,6 +110,8 @@ func _process(delta: float) -> void:
 		])
 		_end_session("validation_complete")
 		get_tree().quit(0)
+	elif screenshot_mode and not screenshot_taken and run_time >= 2.0:
+		_save_visual_screenshot()
 	elif player["health"] <= 0.0:
 		_log_gameplay("death", {}, {"reason": "health_zero"})
 		_log_feedback("feedback_negative", {"reason": "death"})
@@ -161,18 +166,22 @@ func _build_scene() -> void:
 
 	actor_root = Node2D.new()
 	actor_root.name = "ActorRoot"
+	actor_root.z_index = 10
 	world_root.add_child(actor_root)
 
 	bullet_root = Node2D.new()
 	bullet_root.name = "BulletRoot"
+	bullet_root.z_index = 30
 	world_root.add_child(bullet_root)
 
 	pickup_root = Node2D.new()
 	pickup_root.name = "PickupRoot"
+	pickup_root.z_index = 20
 	world_root.add_child(pickup_root)
 
 	effect_root = Node2D.new()
 	effect_root.name = "EffectRoot"
+	effect_root.z_index = 40
 	world_root.add_child(effect_root)
 
 	floor_sprite = Sprite2D.new()
@@ -180,6 +189,7 @@ func _build_scene() -> void:
 	floor_sprite.centered = true
 	floor_sprite.scale = Vector2(8.0, 8.0)
 	floor_sprite.modulate = Color(0.55, 0.66, 0.72)
+	floor_sprite.z_index = -100
 	world_root.add_child(floor_sprite)
 	_build_arena_ring()
 
@@ -236,6 +246,7 @@ func _build_arena_ring() -> void:
 	ring.name = "ArenaBoundaryRing"
 	ring.width = 5.0
 	ring.default_color = Color(0.28, 0.95, 1.0, 0.62)
+	ring.z_index = -80
 	var points := PackedVector2Array()
 	for i in range(97):
 		var a := TAU * float(i) / 96.0
@@ -644,6 +655,18 @@ func _update_visual_validation() -> void:
 	if validation_mode and int(run_time) == 3:
 		pass
 
+func _save_visual_screenshot() -> void:
+	screenshot_taken = true
+	await get_tree().process_frame
+	var image := get_viewport().get_texture().get_image()
+	var path := "user://arena_visual_check.png"
+	var err := image.save_png(path)
+	print("PSYGODOT_ARENA_SCREENSHOT path=%s err=%s enemies=%d effects=%d" % [
+		ProjectSettings.globalize_path(path), err, enemies.size(), visual_effect_count
+	])
+	_end_session("screenshot_complete")
+	get_tree().quit(0)
+
 func _update_wave() -> void:
 	wave = int(run_time / 18.0) + 1
 	if wave != last_wave_logged:
@@ -833,3 +856,7 @@ func _is_validation_run() -> bool:
 		or args.has("--headless") \
 		or user_args.has("--headless") \
 		or user_args.has("--arena-verify")
+
+func _is_screenshot_run() -> bool:
+	var user_args := OS.get_cmdline_user_args()
+	return user_args.has("--arena-screenshot")
