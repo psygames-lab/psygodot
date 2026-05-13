@@ -20,6 +20,13 @@ The runner is the product surface. The player should see a game with title, play
 
 Runner telemetry is optional. When enabled, it maps gameplay hooks to session, episode, probe, event tag, raw event, and mock marker records. When disabled, the game remains playable and only exported telemetry is absent.
 
+The demo now exercises the PsyGodot core in four layers:
+
+- semantic gameplay events such as obstacle onsets, lane changes, rewards, collisions, probes, feedback, and markers
+- raw input events through `input_raw` and `input_action`
+- optional physics-frame samples through `frame_sample`
+- derived metrics recomputed from the JSONL stream
+
 The active event and metric docs are:
 
 - `docs/event_schema_runner.md`
@@ -28,4 +35,4 @@ The active event and metric docs are:
 
 ## Validation Goal
 
-Automated validation should drive deterministic runner scenarios and prove that generated JSONL is balanced, timestamped, marker-linked, and suitable for runner-only metric extraction.
+Automated validation should drive deterministic runner scenarios and prove that generated JSONL is balanced, timestamped, marker-linked, and suitable for runner-only metric extraction. Manual play additionally proves that real player input is captured in the same output stream.

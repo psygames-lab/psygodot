@@ -122,7 +122,7 @@ def validate_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if session_ends > session_starts:
                 errors.append(_error(event, "session_end encountered before session_start"))
 
-        if event_type in {"episode", "probe", "gameplay"} and tag not in {"session_start", "session_end"}:
+        if event_type in {"episode", "probe", "gameplay", "feedback"} and tag not in {"session_start", "session_end"}:
             if event_type != "gameplay" or tag in {"episode_start", "episode_end", "probe_start", "probe_end"}:
                 if "episode_id" not in event:
                     errors.append(_error(event, "episode-scoped event missing episode_id"))

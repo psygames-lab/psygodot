@@ -3,6 +3,15 @@
 ## Last Iteration
 
 Date: 2026-05-13
+Task: PsyGodot precision telemetry upgrade
+Commit: pending
+Files changed: PsychRuntime/PsychClock, event tags, runner frame sampler, runner metrics, docs, precision telemetry tests
+Tests run: Python precision static tests, frame metric unit test, Godot project load, Godot main runner headless verification
+Result: PsyGodot now has a built-in software clock, raw input logging, optional frame-level sampling, and metrics that can use frame samples. Documentation now frames PsyGodot as a layered instrumentation core rather than a summary logger.
+
+## Previous Iteration
+
+Date: 2026-05-13
 Task: Playable temple runner rebuild with PsyGodot telemetry
 Commit: pending
 Files changed: Godot temple runner scenes/scripts, runner-only analysis, active docs, example data

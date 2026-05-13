@@ -69,11 +69,27 @@ def _rate(numerator: int, denominator: int) -> float:
 
 
 def _player_samples(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [event["player"] for event in events if isinstance(event.get("player"), dict)]
+    samples: list[dict[str, Any]] = []
+    for event in events:
+        if isinstance(event.get("player"), dict):
+            samples.append(event["player"])
+            continue
+        sample = event.get("sample")
+        if isinstance(sample, dict) and isinstance(sample.get("player"), dict):
+            samples.append(sample["player"])
+    return samples
 
 
 def _game_samples(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [event["game"] for event in events if isinstance(event.get("game"), dict)]
+    samples: list[dict[str, Any]] = []
+    for event in events:
+        if isinstance(event.get("game"), dict):
+            samples.append(event["game"])
+            continue
+        sample = event.get("sample")
+        if isinstance(sample, dict) and isinstance(sample.get("game"), dict):
+            samples.append(sample["game"])
+    return samples
 
 
 def _sample_score(sample: dict[str, Any]) -> float | None:
@@ -105,6 +121,20 @@ def _movement_entropy(samples: list[dict[str, Any]]) -> float:
         probability = count / total
         entropy -= probability * math.log2(probability)
     return entropy
+
+
+def _sample_lateral_deviation(sample: dict[str, Any], lane_width: float = 3.0) -> float | None:
+    lane = sample.get("lane")
+    if not isinstance(lane, (int, float)):
+        return None
+    x = sample.get("x")
+    if not isinstance(x, (int, float)):
+        position = sample.get("position")
+        if isinstance(position, dict) and isinstance(position.get("x"), (int, float)):
+            x = position["x"]
+    if not isinstance(x, (int, float)):
+        return None
+    return abs(float(x) - (float(lane) * lane_width))
 
 
 def _events_by_probe(events: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -191,10 +221,22 @@ def compute_metrics(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     samples = _player_samples(events)
     game_samples = _game_samples(events)
+    frame_sample_count = sum(1 for event in events if event.get("event_tag") == "frame_sample")
+    lateral_deviations = [
+        deviation for deviation in (_sample_lateral_deviation(sample) for sample in samples) if deviation is not None
+    ]
     scores = [score for score in (_sample_score(sample) for sample in game_samples + samples) if score is not None]
     distances = [distance for distance in (_sample_distance(sample) for sample in game_samples + samples) if distance is not None]
     metrics.append(_metric(session_id, "score", max(scores) if scores else 0.0))
     metrics.append(_metric(session_id, "distance_m", (max(distances) - min(distances)) if distances else 0.0))
+    metrics.append(_metric(session_id, "frame_sample_count", frame_sample_count))
+    metrics.append(
+        _metric(
+            session_id,
+            "mean_lateral_deviation",
+            (sum(lateral_deviations) / len(lateral_deviations)) if lateral_deviations else 0.0,
+        )
+    )
 
     obstacle_opportunities = sum(by_tag[tag] for tag in OBSTACLE_OPPORTUNITY_TAGS)
     reward_opportunities = by_tag["reward_onset"]

@@ -129,6 +129,20 @@ class ComputeRunnerMetricsTests(unittest.TestCase):
         self.assertEqual(by_name["score"], 350.0)
         self.assertEqual(by_name["distance_m"], 11.5)
 
+    def test_computes_frame_sample_count_and_mean_lateral_deviation(self):
+        events = [
+            ev("E1", "session_start", 0, event_type="session"),
+            ev("E2", "frame_sample", 1_000, event_type="frame", player={"lane": 0, "x": 0.25}),
+            ev("E3", "frame_sample", 2_000, event_type="frame", player={"lane": 1, "x": 3.75}),
+            ev("E4", "frame_sample", 3_000, event_type="frame", player={"lane": -1, "position": {"x": -3.5}}),
+            ev("E5", "session_end", 4_000, event_type="session"),
+        ]
+
+        by_name = {row["metric_name"]: row["value"] for row in compute_metrics(events) if not row["episode_id"]}
+
+        self.assertEqual(by_name["frame_sample_count"], 3.0)
+        self.assertEqual(by_name["mean_lateral_deviation"], 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()

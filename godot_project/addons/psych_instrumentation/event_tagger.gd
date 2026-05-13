@@ -36,7 +36,10 @@ const VALID_TAGS := {
 	"speed_change": true,
 	"probe_timeout": true,
 	"conflict_high": true,
-	"marker_sent": true
+	"marker_sent": true,
+	"input_raw": true,
+	"input_action": true,
+	"frame_sample": true
 }
 
 static func is_valid(tag: String) -> bool:

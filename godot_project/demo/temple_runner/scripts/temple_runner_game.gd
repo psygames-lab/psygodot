@@ -373,12 +373,22 @@ func _setup_telemetry() -> void:
 			"study_id": "temple_runner",
 			"participant_id_hash": "p_demo_runner",
 			"build_version": "0.1.0-dev",
-			"random_seed": validation_bot_seed
+			"random_seed": validation_bot_seed,
+			"capture_input": true,
+			"capture_input_actions": true,
+			"frame_sample_enabled": true,
+			"frame_sample_interval": 1
 		})
+		var runtime := get_node_or_null("/root/PsychRuntime")
+		if runtime != null and runtime.has_method("register_frame_sampler"):
+			runtime.register_frame_sampler(Callable(self, "_frame_sample_payload"), 1)
 
 func _end_telemetry_session(reason: String) -> void:
 	if telemetry == null or telemetry_session_closed or not telemetry.session_active:
 		return
+	var runtime := get_node_or_null("/root/PsychRuntime")
+	if runtime != null and runtime.has_method("unregister_frame_sampler"):
+		runtime.unregister_frame_sampler()
 	telemetry.end_session(reason, _game_payload(), _player_payload())
 	telemetry_session_closed = true
 
@@ -430,6 +440,12 @@ func _player_payload() -> Dictionary:
 		"z": player.position.z,
 		"sliding": player.is_sliding(),
 		"invulnerable": player.is_invulnerable()
+	}
+
+func _frame_sample_payload() -> Dictionary:
+	return {
+		"game": _game_payload(),
+		"player": _player_payload()
 	}
 
 func _area_payload(area: Area3D) -> Dictionary:

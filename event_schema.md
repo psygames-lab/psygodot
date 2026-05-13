@@ -2,6 +2,17 @@
 
 Every raw event is one JSON object per line. The active schema is runner-only and describes real temple runner gameplay events plus instrumentation lifecycle events.
 
+The unified JSONL stream may contain these `event_type` values:
+
+- `session`
+- `episode`
+- `probe`
+- `input`
+- `frame`
+- `gameplay`
+- `feedback`
+- `marker`
+
 ## Required Fields
 
 - `schema_version`
@@ -14,6 +25,9 @@ Every raw event is one JSON object per line. The active schema is runner-only an
 - `event_type`
 - `event_tag`
 - `timestamp_usec`
+- `timestamp_msec`
+- `session_elapsed_usec`
+- `session_elapsed_msec`
 - `wall_time_iso`
 - `frame`
 - `physics_frame`
@@ -23,6 +37,8 @@ Episode-scoped gameplay events include `episode_id`.
 Probe-scoped events include `probe_id`.
 
 Marker events include `marker.code`, `marker.label`, `marker.driver`, and `marker.linked_event_id`.
+
+`timestamp_usec`, `timestamp_msec`, `session_elapsed_usec`, `session_elapsed_msec`, `frame`, `physics_frame`, and `wall_time_iso` are added by `PsychClock`. They provide a single software timebase for aligning raw input, frame samples, semantic gameplay events, probes, and markers. They do not by themselves validate physical display onset.
 
 ## Runner Event Tags
 
@@ -52,6 +68,54 @@ Marker events include `marker.code`, `marker.label`, `marker.driver`, and `marke
 - `speed_change`: runner speed changes enough to be analytically relevant.
 - `probe_timeout`: an embedded probe closed without a qualifying response.
 - `marker_sent`: mock marker linked to a source gameplay event.
+- `input_raw`: raw Godot input event captured by `PsychRuntime._input()`.
+- `input_action`: Godot input action mapped from a raw input event.
+- `frame_sample`: optional physics-frame state sample captured by a registered sampler.
+
+## Input Events
+
+Input events use `event_type: "input"` and do not require `episode_id` or `probe_id`. They are written to the same JSONL stream as gameplay and are aligned through the shared clock fields.
+
+`input_raw` payloads may include:
+
+- `input.class`
+- `input.device`
+- `input.keycode`
+- `input.physical_keycode`
+- `input.button_index`
+- `input.axis`
+- `input.axis_value`
+- `input.position`
+- `input.pressed`
+- `input.released`
+- `input.echo`
+
+`input_action` payloads may include:
+
+- `input.action`
+- `input.pressed`
+- `input.released`
+- `input.strength`
+
+Input events normally do not emit linked marker events. Marker events remain reserved for configured semantic events and timing probes.
+
+## Frame Sample Events
+
+Frame samples use `event_type: "frame"` and `event_tag: "frame_sample"`. They are optional and do not require `episode_id` or `probe_id`. The temple runner sampler writes:
+
+- `sample.game.mode`
+- `sample.game.score`
+- `sample.game.distance`
+- `sample.game.speed`
+- `sample.game.hearts`
+- `sample.game.combo`
+- `sample.game.gems`
+- `sample.game.near_misses`
+- `sample.player.lane`
+- `sample.player.x`, `sample.player.y`, `sample.player.z`
+- `sample.player.position`
+- `sample.player.sliding`
+- `sample.player.invulnerable`
 
 ## Runner Payload Conventions
 

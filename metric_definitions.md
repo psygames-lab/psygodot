@@ -14,6 +14,10 @@ All active metrics are derived from runner JSONL events. Metrics are recomputabl
 - `risky_path_choice_rate`: `risky_path_chosen` events divided by `path_choice_onset` events.
 - `post_error_slowing_ms`: response latency change after an error probe compared with non-post-error probes.
 - `movement_entropy`: entropy of lane occupancy samples in runner player payloads.
+- `frame_sample_count`: number of `frame_sample` events in the session.
+- `mean_lateral_deviation`: mean absolute difference between sampled player x position and the expected x position for the sampled lane.
+
+`collision_rate`, `reward_collection_rate`, `risky_path_choice_rate`, and response-time metrics are derived from semantic gameplay/probe events. `frame_sample_count`, `mean_lateral_deviation`, and fine-grained movement traces are derived from `frame_sample` events. Both streams are recomputable from raw JSONL without querying Godot scene state.
 
 ## Episode Metrics
 

@@ -30,6 +30,8 @@
 - `near_miss_rate`: near misses divided by obstacle and hazard probes.
 - `risky_path_rate`: risky path choices divided by path-choice probes.
 - `movement_entropy`: entropy over lane change, jump, slide, and no-response windows.
+- `frame_sample_count`: count of physics-frame samples written during a telemetry-enabled run.
+- `mean_lateral_deviation`: mean absolute difference between sampled player x position and expected lane center.
 - `post_collision_slowing_ms`: response latency after collision minus pre-collision baseline.
 - `speed_adjusted_error_rate`: collision and miss outcomes normalized by speed bins.
 - `late_vs_early_performance_delta`: late-run reward/avoidance rate minus early-run reward/avoidance rate.

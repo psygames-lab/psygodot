@@ -1,107 +1,114 @@
 {
   "event_counts": {
-    "collision": 4,
-    "episode_end": 4,
-    "episode_start": 4,
-    "feedback_negative": 4,
-    "feedback_positive": 4,
-    "jump_response": 1,
-    "lane_change": 2,
-    "marker_sent": 51,
-    "near_miss": 4,
-    "no_response": 1,
-    "obstacle_onset": 4,
-    "path_choice_onset": 4,
-    "probe_end": 4,
-    "probe_start": 4,
-    "probe_timeout": 4,
-    "punishment_hit": 4,
-    "punishment_onset": 4,
-    "reward_collected": 2,
-    "reward_onset": 2,
-    "risky_path_chosen": 1,
-    "safe_path_chosen": 3,
+    "conflict_high": 26,
+    "episode_end": 2,
+    "episode_start": 2,
+    "feedback_positive": 122,
+    "frame_sample": 1800,
+    "jump_response": 20,
+    "lane_change": 28,
+    "marker_sent": 652,
+    "near_miss": 49,
+    "obstacle_onset": 73,
+    "path_choice_onset": 52,
+    "probe_end": 144,
+    "probe_start": 144,
+    "punishment_onset": 73,
+    "reward_collected": 51,
+    "reward_onset": 71,
+    "risky_path_chosen": 6,
+    "safe_path_chosen": 16,
     "session_end": 1,
     "session_start": 1,
-    "speed_change": 4,
-    "successful_avoidance": 4
+    "slide_response": 3,
+    "speed_change": 13,
+    "successful_avoidance": 71
   },
   "marker_counts": {
     "by_label": {
-      "collision": 4,
-      "feedback_negative": 4,
-      "feedback_positive": 4,
-      "jump_response": 1,
-      "lane_change": 2,
-      "near_miss": 4,
-      "obstacle_onset": 4,
-      "path_choice_onset": 4,
-      "probe_timeout": 4,
-      "punishment_hit": 4,
-      "punishment_onset": 4,
-      "reward_collected": 2,
-      "reward_onset": 2,
-      "speed_change": 4,
-      "successful_avoidance": 4
+      "conflict_high": 26,
+      "feedback_positive": 122,
+      "jump_response": 20,
+      "lane_change": 28,
+      "near_miss": 49,
+      "obstacle_onset": 73,
+      "path_choice_onset": 52,
+      "punishment_onset": 73,
+      "reward_collected": 51,
+      "reward_onset": 71,
+      "slide_response": 3,
+      "speed_change": 13,
+      "successful_avoidance": 71
     },
-    "total": 51
+    "total": 652
   },
   "metric_ranges": {
     "collision_rate": {
-      "max": 1.0,
-      "min": 1.0
+      "max": 0.0,
+      "min": 0.0
     },
     "distance_m": {
-      "max": 14.0,
-      "min": 14.0
+      "max": 637.117159,
+      "min": 637.117159
     },
     "episode_survival_time_ms": {
-      "max": 3.176,
-      "min": 0.04
+      "max": 19859.203,
+      "min": 9982.947
+    },
+    "frame_sample_count": {
+      "max": 1800.0,
+      "min": 1800.0
     },
     "hazard_hit_rate": {
-      "max": 1.0,
-      "min": 1.0
+      "max": 0.0,
+      "min": 0.0
+    },
+    "mean_lateral_deviation": {
+      "max": 0.242958,
+      "min": 0.242958
     },
     "movement_entropy": {
-      "max": 0.491237,
-      "min": 0.491237
+      "max": 1.336218,
+      "min": 1.336218
     },
     "near_miss_rate": {
-      "max": 1.0,
-      "min": 1.0
+      "max": 0.494949,
+      "min": 0.494949
     },
     "obstacle_response_rt_ms": {
-      "max": 0.273,
-      "min": 0.106
+      "max": 431.138,
+      "min": 2.966
     },
     "post_error_slowing_ms": {
-      "max": -0.137,
-      "min": -0.137
+      "max": 0.0,
+      "min": 0.0
     },
     "reward_collection_rate": {
-      "max": 1.0,
-      "min": 1.0
+      "max": 0.71831,
+      "min": 0.71831
     },
     "risky_path_choice_rate": {
-      "max": 0.25,
-      "min": 0.25
+      "max": 0.115385,
+      "min": 0.115385
     },
     "score": {
-      "max": 140.0,
-      "min": 140.0
+      "max": 341905.0,
+      "min": 341905.0
     },
     "total_run_time_ms": {
-      "max": 3.503,
-      "min": 3.503
+      "max": 29842.394,
+      "min": 29842.394
     }
   },
   "probe_counts": {
     "by_probe_type": {
-      "runner_response": 4
+      "conflict": 26,
+      "obstacle_avoidance": 21,
+      "reward_approach": 23,
+      "risky_path_choice": 74
     },
-    "ended": 4,
-    "started": 4
+    "ended": 144,
+    "started": 144
   },
   "validation_errors": []
 }
