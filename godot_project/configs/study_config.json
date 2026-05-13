@@ -1,10 +1,7 @@
 {
-  "study_id": "godot_psych_pilot",
-  "participant_id_hash": "p_demo",
+  "study_id": "temple_runner",
+  "participant_id_hash": "p_demo_runner",
   "build_version": "0.1.0-dev",
-  "episode_count": 30,
-  "reward_probability_high": 0.8,
-  "reward_probability_low": 0.2,
-  "reversal_points": [10, 20],
+  "episode_duration_seconds": 20.0,
   "random_seed": 12052026
 }

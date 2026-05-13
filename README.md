@@ -1,30 +1,46 @@
 # PsyGodot
 
-PsyGodot is a Godot instrumentation layer for psychologically interpretable gameplay. The project does not force games into trial-first experiment runners. It records gameplay events as tagged, replayable, analyzable behavior streams.
+PsyGodot is a Godot project for building real games that also emit psychologically interpretable telemetry. The current demo is a playable temple/jungle runner first: the player runs, dodges, jumps, slides, collects rewards, loses hearts, and restarts like a game. Psych instrumentation is a layer behind that play, not the product surface.
 
-## MVP Vertical Slice
+## Current Demo
 
-The first MVP proves this closed loop:
+The active demo lives at `godot_project/demo/temple_runner/`.
 
-`gameplay behavior -> psychological event tags -> JSONL raw events -> mock marker linkage -> Python derived metrics`
+The target default Godot scene is:
+
+`res://demo/temple_runner/scenes/TempleRunnerGame.tscn`
+
+The runner is designed around a third-person, three-lane temple corridor with procedural jungle/ruin assets, hazards, gaps, reward gems, score, distance, combo, hearts, audio feedback, title/play/game-over states, and deterministic validation mode.
+
+## PsyGodot Loop
+
+The rebuild proves this runner-only loop:
+
+`playable runner behavior -> semantic event tags -> JSONL raw events -> linked mock markers -> runner metrics and validation summaries`
 
 ## Current Scope
 
 - Godot 4.6.2-stable project.
-- Hidden reversal-learning prototype.
+- Playable temple/jungle runner as the core demo.
+- Optional telemetry layer that can be disabled without breaking play.
 - Session, Episode, Probe, EventTag, BehaviorEvent, BehaviorMetric, and Marker concepts.
-- Local-first JSONL output.
-- Python metric extraction.
+- Runner-only JSONL validation and metric extraction.
+- Local-first outputs for repeatable development and review.
 
-## Not In MVP
+## Not In Scope
 
+- Trial-runner UX as the main product.
+- Reversal-learning prototype positioning.
 - Full editor plugin UI.
 - Backend dashboard.
 - Real hardware triggers.
 - Timing precision claims without external validation.
 
-## Continuous Runner Demo
+## Documentation
 
-The continuous runner demo lives under `godot_project/demo/continuous_runner/`. It validates whether PsyGodot can instrument continuous naturalistic gameplay into episodes, probes, event tags, raw JSONL, mock markers, and derived metrics.
-
-Run the main scene at `res://demo/continuous_runner/scenes/RunnerDemo.tscn`, or run `ValidationRunner.tscn` for deterministic automated logs. See `godot_project/demo/continuous_runner/README.md` and `docs/demo_validation_report.md`.
+- Product requirements: `prd.md`
+- Architecture: `architecture.md`
+- Event schema: `event_schema.md`
+- Metric definitions: `metric_definitions.md`
+- Acceptance gates: `acceptance_tests.md`
+- Temple runner docs: `godot_project/demo/temple_runner/README.md`

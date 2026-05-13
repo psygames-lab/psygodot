@@ -1,2 +1,0 @@
-session_id,total_run_time_ms,number_of_episodes,number_of_probes,collision_rate,near_miss_rate,reward_collection_rate,punishment_hit_rate,risky_path_choice_rate,post_error_slowing_ms,mean_lateral_deviation,movement_entropy,episode_survival_time_ms,probe_timeout_rate
-S_20260512 212714_8292,8.462,5,25,0.100,0.500,0.300,0.000,0.000,-0.007,0.040,1.406,1.657,0.000

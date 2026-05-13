@@ -1,38 +1,36 @@
 # Acceptance Tests
 
-## Project Scaffold
+These gates describe the playable temple runner rebuild. They replace the old reversal-learning acceptance checklist.
 
-- [x] Root docs exist.
-- [x] Godot project exists under `godot_project/`.
-- [x] Analysis scripts exist under `analysis/`.
+## Game Launch
 
-## Runtime Lifecycle
+- [x] `godot_project/project.godot` uses `res://demo/temple_runner/scenes/TempleRunnerGame.tscn` as the default main scene.
+- [x] Opening the project in Godot and pressing Run starts the temple runner, not a smoke test or trial UI.
+- [x] The game has title, playing, game-over, and restart flow.
 
-- [x] Session start is logged.
-- [x] Session end is logged.
-- [x] `session_manifest.json` is written.
+## Playability
 
-## Event Logging
+- [x] Player can change lanes, jump, slide, collect rewards, and collide with hazards.
+- [x] Score, distance, combo, and hearts update during play.
+- [x] Speed ramps over time while the run remains controllable.
+- [x] Audio and visual feedback communicate collect, hit, jump, slide, and game-over events.
 
-- [x] Every event has required schema fields.
-- [x] JSONL has one valid JSON object per line.
-- [x] Choice, feedback, rule shift, and marker events are present.
+## Telemetry
 
-## Episode / Probe Flow
+- [x] Telemetry can be enabled for data collection and disabled without breaking gameplay.
+- [x] JSONL logs include session, episode, probe, gameplay, feedback, and marker events.
+- [x] Runner tags include obstacle/reward/punishment/path onsets, movement responses, collisions, near misses, reward collection, and safe/risky path choices.
+- [x] Marker events link to source gameplay event ids.
 
-- [x] `episode_start` precedes `episode_end`.
-- [x] `probe_start` precedes `probe_end`.
-- [x] Choice and feedback events include `episode_id` and `probe_id`.
+## Validation And Metrics
 
-## Metrics
+- [x] Deterministic validation runs generate valid runner JSONL.
+- [x] Runner validator rejects missing required fields, non-monotonic timestamps, unbalanced sessions, unclosed probes, and orphan markers.
+- [x] Metric extraction writes runner session, probe, and derived metric outputs.
+- [x] Metrics are traceable to probe ids where applicable.
 
-- [x] `derived_metrics_example.csv` is generated from raw JSONL.
-- [x] `choice_rt_ms` is computed.
-- [x] `stay_after_win` is computed.
-- [x] `switch_after_loss` is computed.
-- [x] `perseverative_error` is computed.
+## Cleanup
 
-## Trigger Mock
-
-- [x] `marker_sent` is logged.
-- [x] Marker events link to source event ids.
+- [x] Reversal-learning demo positioning is removed from active docs.
+- [x] Analysis tooling is runner-only.
+- [x] Old continuous-runner docs and paths are not referenced by active docs.

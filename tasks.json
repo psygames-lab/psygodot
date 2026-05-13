@@ -1,202 +1,91 @@
 {
   "project": "psygodot",
-  "current_phase": "instrumentation_first_mvp",
+  "current_phase": "playable_temple_runner_rebuild",
   "tasks": [
     {
-      "id": "T001",
-      "title": "Create repository control scaffold",
+      "id": "TR001",
+      "title": "Cleanup and project reset",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Root docs exist",
-        "tasks.json and progress.md exist",
-        "MVP positioning rejects trial-first design"
+        "Old reversal-learning demo paths are removed from active project scope",
+        "Old continuous-runner demo paths are removed from active project scope",
+        "godot_project/demo/temple_runner exists with scenes, scripts, assets, data_examples, and docs folders",
+        "project.godot default main scene points to res://demo/temple_runner/scenes/TempleRunnerGame.tscn"
       ]
     },
     {
-      "id": "T002",
-      "title": "Add Python event schema validation",
+      "id": "TR002",
+      "title": "Playable temple runner core game",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Validator accepts valid JSONL",
-        "Validator rejects missing required fields",
-        "Validator checks marker linked_event_id"
+        "TempleRunnerGame scene launches from the Godot editor Run action",
+        "Game has title, playing, game-over, and restart states",
+        "Player can change lanes, jump, slide, collect rewards, and collide with hazards",
+        "Score, distance, combo, hearts, and speed ramp update during play",
+        "Run remains a real game when telemetry is disabled"
       ]
     },
     {
-      "id": "T003",
-      "title": "Add Python metric extraction",
+      "id": "TR003",
+      "title": "Assets, UI, audio, and game feel",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Metrics include choice_rt_ms",
-        "Metrics include stay_after_win",
-        "Metrics include switch_after_loss",
-        "Metrics include perseverative_error"
+        "Runner has original temple/jungle visual identity using procedural or generated assets",
+        "HUD and menus are readable at target resolutions",
+        "Audio cues exist for ambient, footstep, collect, hit, jump, slide, and game-over moments",
+        "Feedback effects communicate collect, hit, speed, and combo changes"
       ]
     },
     {
-      "id": "T004",
-      "title": "Create Godot project skeleton",
+      "id": "TR004",
+      "title": "Runner telemetry and event tags",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Godot project.godot exists",
-        "Main scene exists",
-        "Godot MCP project info succeeds"
+        "Telemetry logs session start/end, episode start/end, probe start/end, and flush events",
+        "Runner tags cover obstacle/reward/hazard/path onsets, movement responses, outcomes, and safe/risky choices",
+        "Marker events are emitted with linked source event ids",
+        "Telemetry can be disabled without breaking gameplay"
       ]
     },
     {
-      "id": "T005",
-      "title": "Implement instrumentation runtime",
+      "id": "TR005",
+      "title": "Runner validation and analysis",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "PsychRuntime starts and ends sessions",
-        "BehaviorLogger writes JSONL",
-        "Episode and Probe ids attach to gameplay events"
+        "analysis/ is rebuilt as runner-only validation and metric tooling",
+        "Validator checks required fields, monotonic timestamps, balanced sessions, balanced probes, and marker links",
+        "Metric extraction writes runner session, probe, and derived metric outputs",
+        "Deterministic validation scenarios cover perfect, noisy, risk-seeking, and avoidant play"
       ]
     },
     {
-      "id": "T006",
-      "title": "Implement smoke reversal-learning event stream",
+      "id": "TR006",
+      "title": "Docs and status cleanup",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Smoke scene generates 30 episodes",
-        "raw_events_example.jsonl validates",
-        "rule_shift events are present"
+        "Root docs describe the playable temple runner as the core demo",
+        "Docs state that PsyGodot is a real game first and psych instrumentation second",
+        "Runner event tags and metric definitions are documented",
+        "Progress file states that old reversal and analysis assets were removed and rebuild work is in progress"
       ]
     },
     {
-      "id": "T007",
-      "title": "Implement minimal playable prototype UI",
+      "id": "TR007",
+      "title": "Final verification",
       "priority": "P0",
       "status": "done",
       "acceptance": [
-        "Player can choose Tree A or Tree B",
-        "Feedback is displayed",
-        "Scene uses same ReversalGameModel as smoke runner"
-      ]
-    },
-    {
-      "id": "T008",
-      "title": "Generate curated example outputs",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "data_examples/raw_events_example.jsonl exists",
-        "data_examples/derived_metrics_example.csv exists",
-        "Examples are generated from the smoke scene"
-      ]
-    },
-    {
-      "id": "R001",
-      "title": "Godot MCP And Project Health Gate",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Godot executable configuration is identified",
-        "Godot MCP project inspection returns without spawn errors",
-        "Existing Python tests pass",
-        "Existing smoke scene prints PSYGODOT_SMOKE_OK"
-      ]
-    },
-    {
-      "id": "R002",
-      "title": "Runner Demo Documentation Scaffold",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Runner README and docs directory exist",
-        "PRD, architecture, validation plan, event schema, and metric definition docs exist",
-        "Root docs link to runner docs without replacing MVP docs",
-        "Runner tasks R001 through R009 are present in tasks.json with todo status"
-      ]
-    },
-    {
-      "id": "R003",
-      "title": "Python Runner Event Validation Tests And Validator",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Runner validator exposes validate_runner_jsonl",
-        "Validator checks required fields and monotonic timestamps",
-        "Validator checks balanced sessions, episodes, and probes",
-        "Marker events require marker.linked_event_id"
-      ]
-    },
-    {
-      "id": "R004",
-      "title": "Runner Metric Tests And Extractor",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Metric extractor exposes compute_runner_metrics and write_runner_outputs",
-        "CLI writes derived_runner_metrics, runner_session_summary, and runner_probe_summary outputs",
-        "Metrics include response latency, rates, movement entropy, and post-error slowing",
-        "Runner metric tests pass"
-      ]
-    },
-    {
-      "id": "R005",
-      "title": "Minimal Playable Runner",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Runner scenes and scripts exist under godot_project/demo/continuous_runner",
-        "Runner scene starts without critical Godot errors",
-        "Player can move lanes, jump, slide, collect rewards, and collide with obstacles",
-        "Run remains alive after collisions"
-      ]
-    },
-    {
-      "id": "R006",
-      "title": "Runner Instrumentation And Event Tags",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Runner tags are added to EventTagger.VALID_TAGS",
-        "Runner marker codes are added to TriggerManager.marker_map",
-        "RunnerEventMapper logs sessions, episodes, player actions, object onsets, feedback, and flushes",
-        "Generated runner JSONL validates with errors=0"
-      ]
-    },
-    {
-      "id": "R007",
-      "title": "Psychological Probe Controller",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "RunnerProbeController supports obstacle, reward, punishment, risky path, and conflict probes",
-        "Probe event sequences include start, onset, response or timeout, outcome, feedback, and end",
-        "Probe starts occur when objects enter response range",
-        "Generated runner JSONL has no open probes"
-      ]
-    },
-    {
-      "id": "R008",
-      "title": "Automated Responder And Validation Runner",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "ValidationRunner scene exists",
-        "Scripted responder supports configured seed, error rate, and risky choice probability",
-        "Validation runner executes perfect, noisy, risk-seeking, and avoidant scenarios",
-        "Validation prints PSYGODOT_RUNNER_VALIDATION_OK and generated logs validate with errors=0"
-      ]
-    },
-    {
-      "id": "R009",
-      "title": "Runner Debug Overlay",
-      "priority": "P0",
-      "status": "done",
-      "acceptance": [
-        "Debug overlay displays session, episode, probe, event, marker, player, log, and logger status",
-        "F3 toggles overlay",
-        "F5 flushes the log",
-        "F8 ends the session safely"
+        "Godot main scene launches headless without critical errors",
+        "ValidationRunner scene generates valid runner JSONL",
+        "Python runner tests pass",
+        "Metric extraction succeeds on generated examples",
+        "Active docs contain no obsolete reversal-learning or continuous-runner positioning"
       ]
     }
   ]

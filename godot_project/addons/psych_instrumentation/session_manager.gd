@@ -4,7 +4,7 @@ extends RefCounted
 var context: Dictionary = {}
 
 func start_session(config: Dictionary) -> Dictionary:
-	var timestamp := Time.get_datetime_string_from_system(false, true).replace("-", "").replace(":", "")
+	var timestamp := Time.get_datetime_string_from_system(false, true).replace("-", "").replace(":", "").replace(" ", "_")
 	var random_suffix := "%04d" % randi_range(0, 9999)
 	context = {
 		"study_id": config.get("study_id", "godot_psych_pilot"),

@@ -2,70 +2,38 @@
 
 ## Last Iteration
 
-Date: 2026-05-12
-Task: Continuous runner curated examples and final documentation
+Date: 2026-05-13
+Task: Playable temple runner rebuild with PsyGodot telemetry
 Commit: pending
-Files changed: runner data examples, runner README, root README, demo validation report
-Tests run: pending final verification
-Result: v0.1 continuous naturalistic runner demo package prepared for final verification.
-
-Date: 2026-05-12
-Task: Continuous runner automated validation, debug overlay, and timing validation
-Commit: pending
-Files changed: validation responder scene/scripts, runner debug overlay, timing validation scene/script
-Tests run: Python unittest discover (28 tests), RunnerDemo headless, ValidationRunner headless, TimingValidation headless, runner JSONL validation, timing analysis
-Result: Automated responder scenarios generate four valid JSONL logs; runner overlay is wired into the playable scene; timing validation logs 100 flash events and 100 linked mock markers with zero missing markers.
-
-Date: 2026-05-12
-Task: Continuous runner instrumentation, probes, and validation utilities
-Commit: pending
-Files changed: runner event mapper, runner probe controller, runner game instrumentation, runner event tags, runner marker map, runner validation summary tools
-Tests run: Python unittest discover (28 tests), Godot 4.6.2 console headless RunnerDemo scene, runner JSONL validation, runner metric extraction, runner validation summary
-Result: Runner now emits valid session, episode, probe, gameplay, feedback, and marker events from continuous play; latest 65-second headless run produced 674 valid JSONL events and 56 closed probes.
-
-Date: 2026-05-12
-Task: Continuous runner docs, analysis, and playable runner base
-Commit: pending
-Files changed: root runner doc links, runner docs, runner tasks, runner Python validator/metrics, minimal Godot runner scene and scripts
-Tests run: Python unittest discover (24 tests), Godot 4.6.2 console headless RunnerDemo scene
-Result: Runner documentation scaffold, runner event validation, runner metric extraction, and a 65-second headless playable runner baseline are ready for commit.
-
-Date: 2026-05-12
-Task: Continuous runner development preflight
-Commit: 6b6ddd5
-Files changed: progress.md, docs/superpowers/plans/2026-05-12-continuous-runner-demo.md
-Tests run: Python unittest, Godot 4.6.2 direct headless smoke scene
-Result: Existing PsyGodot vertical slice is healthy. Godot MCP is installed, but the current MCP process still resolves `C:\Program Files\Godot\Godot.exe`; `D:\Godot\Godot.exe` is now available for MCP after restart and direct headless verification works now.
-
-Date: 2026-05-12
-Task: Instrumentation-first MVP vertical slice
-Commit: e65999a
-Files changed: Godot project, instrumentation scripts, analysis scripts, examples, acceptance tests
-Tests run: Python unittest, JSONL schema validation, metric extraction, Godot smoke scene
-Result: MVP vertical slice complete pending human review.
+Files changed: Godot temple runner scenes/scripts, runner-only analysis, active docs, example data
+Tests run: Godot main scene headless, Godot validation scene headless, runner JSONL validator, runner metric extraction, Python unittest
+Result: The active demo is now a playable temple/jungle runner. Old reversal-learning and old continuous-runner demo paths are removed from active scope. The default Godot main scene is `res://demo/temple_runner/scenes/TempleRunnerGame.tscn`.
 
 ## Current Working State
 
-- Godot project opens: yes
-- Prototype playable: yes
-- JSONL logging: yes
-- Metrics extraction: yes
-- Trigger mock: yes
-- Known issues: timing precision is not externally validated; MVP only supports software timestamps and mock markers.
+- Active demo target: playable temple/jungle runner under `godot_project/demo/temple_runner/`
+- Product stance: real game first, psych instrumentation second
+- Default main scene: `res://demo/temple_runner/scenes/TempleRunnerGame.tscn`
+- Telemetry: optional PsyGodot session, episode, probe, gameplay, feedback, and linked mock marker events
+- Validation: `res://demo/temple_runner/scenes/ValidationRunner.tscn`
+- Analysis: runner-only JSONL validation, metric extraction, and validation summary
+- Example data: `godot_project/demo/temple_runner/data_examples/`
 
-## Continuous Runner Status
+## Temple Runner Rebuild Status
 
-- Runner docs: yes
-- Playable runner: yes, minimal 3-lane headless-verified baseline
-- Runner instrumentation: yes
-- Runner probes: yes
-- Automated responder: yes
-- Runner metrics: yes, Python extractor implemented with tests
-- Debug overlay: yes
-- Timing validation: yes
-- Known issues: Godot MCP process still needs restart or configuration refresh to read `D:\Godot\Godot.exe`; direct Godot console verification works.
-- Result: v0.1 continuous naturalistic runner demo complete pending human review.
+- Cleanup and project reset: done
+- Playable core game: done
+- Assets, UI, audio, and game feel: done
+- Runner telemetry and event tags: done
+- Runner validation and analysis: done
+- Docs/status cleanup: done
+- Final verification: done
 
-## Next Recommended Task
+## Latest Verification
 
-Continue continuous runner instrumentation and psychological probe integration.
+- `python -m unittest discover -s analysis/tests -v`: 9 tests OK
+- Godot main scene headless: `PSYGODOT_PLAYABLE_RUNNER_OK`
+- Godot validation scene headless: `PSYGODOT_TEMPLE_RUNNER_VALIDATION_OK`
+- `analysis/validate_runner_events.py`: `valid: true`, `errors: []`
+- `analysis/compute_runner_metrics.py`: generated runner metrics CSV outputs
+- `analysis/summarize_runner_validation.py`: generated runner validation report

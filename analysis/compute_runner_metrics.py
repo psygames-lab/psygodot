@@ -1,359 +1,309 @@
+#!/usr/bin/env python
+"""Compute continuous-runner metrics from PsyGodot JSONL events."""
+
 from __future__ import annotations
 
 import argparse
 import csv
-import json
 import math
-from collections import Counter
+import sys
+from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Any
+
+from validate_runner_events import load_jsonl
 
 
-OUTPUT_KEYS = (
-    "derived_runner_metrics",
-    "runner_session_summary",
-    "runner_probe_summary",
-)
-
-RESPONSE_TAGS = ("lane_change", "jump_response", "slide_response", "response_made")
-ACTION_RT_COLUMNS = {
-    "lane_change": "lane_change_rt_ms",
-    "jump_response": "jump_rt_ms",
-    "slide_response": "slide_rt_ms",
+AVOIDANCE_RESPONSE_TAGS = {
+    "lane_change",
+    "jump_response",
+    "slide_response",
+    "response_made",
+    "safe_path_chosen",
+    "risky_path_chosen",
 }
-ONSET_TAGS = ("obstacle_onset", "reward_onset", "punishment_onset", "path_choice_onset", "conflict_high")
-MOVEMENT_SAMPLE_TAGS = {"lane_change", "jump_response", "slide_response", "speed_change"}
+OBSTACLE_OPPORTUNITY_TAGS = {"obstacle_onset", "conflict_high"}
+HAZARD_HIT_TAGS = {"punishment_hit", "hazard_hit"}
 
 
-def read_events(path: str | Path) -> list[dict]:
-    events: list[dict] = []
-    with Path(path).open("r", encoding="utf-8-sig") as handle:
-        for line in handle:
-            stripped = line.strip()
-            if stripped:
-                events.append(json.loads(stripped))
-    return events
+def _timestamp(event: dict[str, Any]) -> float | None:
+    value = event.get("timestamp_usec")
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
 
 
-def _format_number(value: float | None) -> str:
-    if value is None or math.isnan(value):
-        return ""
-    return f"{value:.3f}"
+def _ms_between(start: dict[str, Any], end: dict[str, Any]) -> float | None:
+    start_ts = _timestamp(start)
+    end_ts = _timestamp(end)
+    if start_ts is None or end_ts is None:
+        return None
+    return (end_ts - start_ts) / 1000.0
 
 
-def _bool_text(value: bool) -> str:
-    return "true" if value else "false"
+def _session_id(events: list[dict[str, Any]]) -> str:
+    for event in events:
+        if event.get("session_id"):
+            return str(event["session_id"])
+    return ""
 
 
-def _rate(numerator: int, denominator: int) -> str:
-    if denominator <= 0:
-        return ""
-    return _format_number(numerator / denominator)
-
-
-def _timestamp(event: dict) -> int:
-    value = event.get("timestamp_usec", 0)
-    return value if isinstance(value, int) else 0
-
-
-def _metric_row(session_id: str, metric_name: str, value: str, episode_id: str = "", probe_id: str = "") -> dict[str, str]:
+def _metric(
+    session_id: str,
+    metric_name: str,
+    value: float,
+    episode_id: str = "",
+    probe_id: str = "",
+) -> dict[str, Any]:
     return {
         "session_id": session_id,
         "episode_id": episode_id,
         "probe_id": probe_id,
         "metric_name": metric_name,
-        "value": value,
+        "value": round(float(value), 6),
     }
 
 
-def _group_by_probe(events: list[dict]) -> dict[tuple[str, str, str], list[dict]]:
-    by_probe: dict[tuple[str, str, str], list[dict]] = {}
+def _rate(numerator: int, denominator: int) -> float:
+    return float(numerator) / float(denominator) if denominator else 0.0
+
+
+def _player_samples(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [event["player"] for event in events if isinstance(event.get("player"), dict)]
+
+
+def _game_samples(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [event["game"] for event in events if isinstance(event.get("game"), dict)]
+
+
+def _sample_score(sample: dict[str, Any]) -> float | None:
+    value = sample.get("score")
+    if isinstance(value, (int, float)):
+        return float(value)
+    return None
+
+
+def _sample_distance(sample: dict[str, Any]) -> float | None:
+    value = sample.get("distance")
+    if isinstance(value, (int, float)):
+        return float(value)
+    position = sample.get("position")
+    if isinstance(position, dict) and isinstance(position.get("z"), (int, float)):
+        return float(position["z"])
+    if isinstance(sample.get("z"), (int, float)):
+        return float(sample["z"])
+    return None
+
+
+def _movement_entropy(samples: list[dict[str, Any]]) -> float:
+    lanes = [sample.get("lane") for sample in samples if sample.get("lane") is not None]
+    if not lanes:
+        return 0.0
+    total = len(lanes)
+    entropy = 0.0
+    for count in Counter(lanes).values():
+        probability = count / total
+        entropy -= probability * math.log2(probability)
+    return entropy
+
+
+def _events_by_probe(events: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for event in events:
-        session_id = event.get("session_id")
-        episode_id = event.get("episode_id")
         probe_id = event.get("probe_id")
-        if session_id and episode_id and probe_id:
-            by_probe.setdefault((str(session_id), str(episode_id), str(probe_id)), []).append(event)
-    return by_probe
+        if probe_id:
+            grouped[str(probe_id)].append(event)
+    for probe_events in grouped.values():
+        probe_events.sort(key=lambda item: item.get("timestamp_usec", 0))
+    return grouped
 
 
-def _first_event(events: list[dict], tags: tuple[str, ...] | set[str]) -> dict | None:
-    for event in events:
-        if event.get("event_tag") in tags:
-            return event
-    return None
+def _response_latencies(events: list[dict[str, Any]]) -> list[float]:
+    latencies = []
+    for probe_events in _events_by_probe(events).values():
+        onset = next((event for event in probe_events if event.get("event_tag") in OBSTACLE_OPPORTUNITY_TAGS), None)
+        if onset is None:
+            continue
+        response = next(
+            (
+                event
+                for event in probe_events
+                if event.get("event_tag") in AVOIDANCE_RESPONSE_TAGS and _timestamp(event) is not None and _timestamp(event) >= _timestamp(onset)
+            ),
+            None,
+        )
+        if response is not None:
+            latency = _ms_between(onset, response)
+            if latency is not None:
+                latencies.append(latency)
+    return latencies
 
 
-def _first_response_after(events: list[dict], onset: dict) -> dict | None:
-    onset_ts = _timestamp(onset)
-    for event in events:
-        if event.get("event_tag") in RESPONSE_TAGS and _timestamp(event) >= onset_ts:
-            return event
-    return None
+def _post_error_slowing(events: list[dict[str, Any]]) -> float:
+    probe_events = list(_events_by_probe(events).values())
+    response_latencies = []
+    error_probe_indexes = set()
 
-
-def _compute_probe_summaries(events: list[dict]) -> tuple[list[dict[str, str]], list[dict]]:
-    rows: list[dict[str, str]] = []
-    rt_records: list[dict] = []
-
-    for (session_id, episode_id, probe_id), probe_events in _group_by_probe(events).items():
-        ordered = sorted(probe_events, key=_timestamp)
-        onset = _first_event(ordered, ONSET_TAGS)
-        response = _first_response_after(ordered, onset) if onset is not None else None
-        obstacle_onset = _first_event(ordered, {"obstacle_onset"})
-        obstacle_response = _first_response_after(ordered, obstacle_onset) if obstacle_onset is not None else None
-
-        row = {
-            "session_id": session_id,
-            "episode_id": episode_id,
-            "probe_id": probe_id,
-            "obstacle_response_rt_ms": "",
-            "lane_change_rt_ms": "",
-            "jump_rt_ms": "",
-            "slide_rt_ms": "",
-            "collision": _bool_text(any(event.get("event_tag") == "collision" for event in ordered)),
-            "near_miss": _bool_text(any(event.get("event_tag") == "near_miss" for event in ordered)),
-            "reward_collected": _bool_text(any(event.get("event_tag") == "reward_collected" for event in ordered)),
-            "punishment_hit": _bool_text(any(event.get("event_tag") == "punishment_hit" for event in ordered)),
-            "risky_path_chosen": _bool_text(any(event.get("event_tag") == "risky_path_chosen" for event in ordered)),
-            "probe_timeout": _bool_text(any(event.get("event_tag") == "probe_timeout" for event in ordered)),
-        }
-
-        if obstacle_onset is not None and obstacle_response is not None:
-            row["obstacle_response_rt_ms"] = _format_number((_timestamp(obstacle_response) - _timestamp(obstacle_onset)) / 1000.0)
-
-        for tag, column in ACTION_RT_COLUMNS.items():
-            action = _first_event(ordered, {tag})
-            if onset is not None and action is not None and _timestamp(action) >= _timestamp(onset):
-                row[column] = _format_number((_timestamp(action) - _timestamp(onset)) / 1000.0)
-
-        if onset is not None and response is not None:
-            rt_records.append(
-                {
-                    "session_id": session_id,
-                    "probe_id": probe_id,
-                    "timestamp": _timestamp(onset),
-                    "rt_ms": (_timestamp(response) - _timestamp(onset)) / 1000.0,
-                    "has_error": any(event.get("event_tag") in {"collision", "punishment_hit"} for event in ordered),
-                }
+    for index, group in enumerate(probe_events):
+        onset = next((event for event in group if event.get("event_tag") in OBSTACLE_OPPORTUNITY_TAGS), None)
+        response = None
+        if onset is not None:
+            response = next(
+                (
+                    event
+                    for event in group
+                    if event.get("event_tag") in AVOIDANCE_RESPONSE_TAGS and _timestamp(event) is not None and _timestamp(event) >= _timestamp(onset)
+                ),
+                None,
             )
+        latency = _ms_between(onset, response) if onset is not None and response is not None else None
+        response_latencies.append(latency)
+        if any(event.get("event_tag") in {"collision", *HAZARD_HIT_TAGS} for event in group):
+            error_probe_indexes.add(index)
 
-        rows.append(row)
+    post_error_indexes = {index + 1 for index in error_probe_indexes}
+    baseline = [
+        latency
+        for index, latency in enumerate(response_latencies)
+        if index not in post_error_indexes and latency is not None
+    ]
+    post_error = [
+        response_latencies[index + 1]
+        for index in error_probe_indexes
+        if index + 1 < len(response_latencies) and response_latencies[index + 1] is not None
+    ]
+    if not baseline or not post_error:
+        return 0.0
+    return (sum(post_error) / len(post_error)) - (sum(baseline) / len(baseline))
 
-    rows.sort(key=lambda item: (item["session_id"], item["episode_id"], item["probe_id"]))
-    rt_records.sort(key=lambda item: (item["session_id"], item["timestamp"]))
-    return rows, rt_records
 
+def compute_metrics(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    session_id = _session_id(events)
+    metrics: list[dict[str, Any]] = []
+    by_tag = Counter(str(event.get("event_tag")) for event in events)
 
-def _episode_survival_rows(events: list[dict]) -> dict[str, list[float]]:
-    starts: dict[tuple[str, str], int] = {}
-    durations: dict[str, list[float]] = {}
-    for event in sorted(events, key=_timestamp):
-        session_id = event.get("session_id")
+    session_start = next((event for event in events if event.get("event_tag") == "session_start"), None)
+    session_end = next((event for event in reversed(events) if event.get("event_tag") == "session_end"), None)
+    if session_start is not None and session_end is not None:
+        value = _ms_between(session_start, session_end)
+        if value is not None:
+            metrics.append(_metric(session_id, "total_run_time_ms", value))
+
+    samples = _player_samples(events)
+    game_samples = _game_samples(events)
+    scores = [score for score in (_sample_score(sample) for sample in game_samples + samples) if score is not None]
+    distances = [distance for distance in (_sample_distance(sample) for sample in game_samples + samples) if distance is not None]
+    metrics.append(_metric(session_id, "score", max(scores) if scores else 0.0))
+    metrics.append(_metric(session_id, "distance_m", (max(distances) - min(distances)) if distances else 0.0))
+
+    obstacle_opportunities = sum(by_tag[tag] for tag in OBSTACLE_OPPORTUNITY_TAGS)
+    reward_opportunities = by_tag["reward_onset"]
+    hazard_opportunities = by_tag["punishment_onset"]
+    path_opportunities = by_tag["path_choice_onset"]
+
+    metrics.extend(
+        [
+            _metric(session_id, "collision_rate", _rate(by_tag["collision"], obstacle_opportunities)),
+            _metric(session_id, "near_miss_rate", _rate(by_tag["near_miss"], obstacle_opportunities)),
+            _metric(session_id, "reward_collection_rate", _rate(by_tag["reward_collected"], reward_opportunities)),
+            _metric(session_id, "hazard_hit_rate", _rate(sum(by_tag[tag] for tag in HAZARD_HIT_TAGS), hazard_opportunities)),
+            _metric(session_id, "risky_path_choice_rate", _rate(by_tag["risky_path_chosen"], path_opportunities)),
+            _metric(session_id, "post_error_slowing_ms", _post_error_slowing(events)),
+            _metric(session_id, "movement_entropy", _movement_entropy(samples)),
+        ]
+    )
+
+    episode_starts: dict[str, dict[str, Any]] = {}
+    for event in events:
+        tag = event.get("event_tag")
         episode_id = event.get("episode_id")
-        if not session_id or not episode_id:
+        if not episode_id:
             continue
-        key = (str(session_id), str(episode_id))
-        if event.get("event_tag") == "episode_start":
-            starts[key] = _timestamp(event)
-        elif event.get("event_tag") == "episode_end" and key in starts:
-            durations.setdefault(str(session_id), []).append((_timestamp(event) - starts[key]) / 1000.0)
-            del starts[key]
-    return durations
+        episode_id = str(episode_id)
+        if tag == "episode_start":
+            episode_starts[episode_id] = event
+        elif tag == "episode_end" and episode_id in episode_starts:
+            value = _ms_between(episode_starts[episode_id], event)
+            if value is not None:
+                metrics.append(_metric(session_id, "episode_survival_time_ms", value, episode_id=episode_id))
 
-
-def _movement_stats(events: list[dict]) -> tuple[dict[str, float], dict[str, float]]:
-    lanes_by_session: dict[str, list[int]] = {}
-    deviations_by_session: dict[str, list[float]] = {}
-    for event in events:
-        session_id = event.get("session_id")
-        player = event.get("player")
-        if not session_id or not isinstance(player, dict) or event.get("event_tag") not in MOVEMENT_SAMPLE_TAGS:
+    for probe_id, probe_events in _events_by_probe(events).items():
+        onset = next((event for event in probe_events if event.get("event_tag") in OBSTACLE_OPPORTUNITY_TAGS), None)
+        if onset is None:
             continue
-        lane = player.get("lane")
-        if isinstance(lane, int):
-            lanes_by_session.setdefault(str(session_id), []).append(lane)
-        lateral_offset = player.get("lateral_offset")
-        if isinstance(lateral_offset, int | float):
-            deviations_by_session.setdefault(str(session_id), []).append(abs(float(lateral_offset)))
+        response = next(
+            (
+                event
+                for event in probe_events
+                if event.get("event_tag") in AVOIDANCE_RESPONSE_TAGS and _timestamp(event) is not None and _timestamp(event) >= _timestamp(onset)
+            ),
+            None,
+        )
+        if response is None:
+            continue
+        value = _ms_between(onset, response)
+        if value is None:
+            continue
+        metrics.append(
+            _metric(
+                session_id,
+                "obstacle_response_rt_ms",
+                value,
+                episode_id=str(response.get("episode_id", onset.get("episode_id", ""))),
+                probe_id=probe_id,
+            )
+        )
 
-    entropies: dict[str, float] = {}
-    for session_id, lanes in lanes_by_session.items():
-        total = len(lanes)
-        entropy = 0.0
-        for count in Counter(lanes).values():
-            probability = count / total
-            entropy -= probability * math.log2(probability)
-        entropies[session_id] = entropy
-
-    deviations = {
-        session_id: sum(values) / len(values)
-        for session_id, values in deviations_by_session.items()
-        if values
-    }
-    return entropies, deviations
-
-
-def _post_error_slowing(rt_records: list[dict]) -> dict[str, str]:
-    by_session: dict[str, list[dict]] = {}
-    for record in rt_records:
-        by_session.setdefault(record["session_id"], []).append(record)
-
-    output: dict[str, str] = {}
-    for session_id, records in by_session.items():
-        post_error: list[float] = []
-        baseline: list[float] = []
-        previous_error = False
-        for record in sorted(records, key=lambda item: item["timestamp"]):
-            if previous_error:
-                post_error.append(record["rt_ms"])
-            else:
-                baseline.append(record["rt_ms"])
-            previous_error = bool(record["has_error"])
-        if post_error and baseline:
-            output[session_id] = _format_number(sum(post_error) / len(post_error) - sum(baseline) / len(baseline))
-        else:
-            output[session_id] = ""
-    return output
+    return metrics
 
 
-def _session_summaries(events: list[dict], probe_rows: list[dict[str, str]], rt_records: list[dict]) -> list[dict[str, str]]:
-    by_session: dict[str, list[dict]] = {}
-    for event in events:
-        session_id = event.get("session_id")
-        if session_id:
-            by_session.setdefault(str(session_id), []).append(event)
-
-    entropies, deviations = _movement_stats(events)
-    survival_by_session = _episode_survival_rows(events)
-    slowing_by_session = _post_error_slowing(rt_records)
-    probe_rows_by_session: dict[str, list[dict[str, str]]] = {}
-    for row in probe_rows:
-        probe_rows_by_session.setdefault(row["session_id"], []).append(row)
-
-    rows: list[dict[str, str]] = []
-    for session_id, session_events in sorted(by_session.items()):
-        ordered = sorted(session_events, key=_timestamp)
-        session_start = _first_event(ordered, {"session_start"})
-        session_end = next((event for event in reversed(ordered) if event.get("event_tag") == "session_end"), None)
-        total_run_time_ms = ""
-        if session_start is not None and session_end is not None:
-            total_run_time_ms = _format_number((_timestamp(session_end) - _timestamp(session_start)) / 1000.0)
-
-        obstacle_count = sum(1 for event in ordered if event.get("event_tag") == "obstacle_onset")
-        reward_count = sum(1 for event in ordered if event.get("event_tag") == "reward_onset")
-        punishment_count = sum(1 for event in ordered if event.get("event_tag") == "punishment_onset")
-        path_choice_count = sum(1 for event in ordered if event.get("event_tag") == "path_choice_onset")
-        probe_start_count = sum(1 for event in ordered if event.get("event_tag") == "probe_start")
-        timeout_count = sum(1 for event in ordered if event.get("event_tag") == "probe_timeout")
-        timeout_denominator = probe_start_count or timeout_count
-        survival = survival_by_session.get(session_id, [])
-
-        row = {
-            "session_id": session_id,
-            "total_run_time_ms": total_run_time_ms,
-            "number_of_episodes": str(sum(1 for event in ordered if event.get("event_tag") == "episode_start")),
-            "number_of_probes": str(probe_start_count or len(probe_rows_by_session.get(session_id, []))),
-            "collision_rate": _rate(sum(1 for event in ordered if event.get("event_tag") == "collision"), obstacle_count),
-            "near_miss_rate": _rate(sum(1 for event in ordered if event.get("event_tag") == "near_miss"), obstacle_count),
-            "reward_collection_rate": _rate(sum(1 for event in ordered if event.get("event_tag") == "reward_collected"), reward_count),
-            "punishment_hit_rate": _rate(sum(1 for event in ordered if event.get("event_tag") == "punishment_hit"), punishment_count),
-            "risky_path_choice_rate": _rate(sum(1 for event in ordered if event.get("event_tag") == "risky_path_chosen"), path_choice_count),
-            "post_error_slowing_ms": slowing_by_session.get(session_id, ""),
-            "mean_lateral_deviation": _format_number(deviations.get(session_id)),
-            "movement_entropy": _format_number(entropies.get(session_id)),
-            "episode_survival_time_ms": _format_number(sum(survival) / len(survival)) if survival else "",
-            "probe_timeout_rate": _rate(timeout_count, timeout_denominator),
-        }
-        rows.append(row)
-
-    return rows
-
-
-def _derived_rows(session_rows: list[dict[str, str]], probe_rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    session_metric_names = [
-        "total_run_time_ms",
-        "number_of_episodes",
-        "number_of_probes",
-        "collision_rate",
-        "near_miss_rate",
-        "reward_collection_rate",
-        "punishment_hit_rate",
-        "risky_path_choice_rate",
-        "post_error_slowing_ms",
-        "mean_lateral_deviation",
-        "movement_entropy",
-        "episode_survival_time_ms",
-        "probe_timeout_rate",
-    ]
-    probe_metric_names = [
-        "obstacle_response_rt_ms",
-        "lane_change_rt_ms",
-        "jump_rt_ms",
-        "slide_rt_ms",
-    ]
-
-    for row in session_rows:
-        for metric_name in session_metric_names:
-            rows.append(_metric_row(row["session_id"], metric_name, row.get(metric_name, "")))
-
-    for row in probe_rows:
-        for metric_name in probe_metric_names:
-            value = row.get(metric_name, "")
-            if value:
-                rows.append(_metric_row(row["session_id"], metric_name, value, row["episode_id"], row["probe_id"]))
-
-    return rows
-
-
-def compute_runner_metrics(path: str | Path) -> dict[str, list[dict[str, str]]]:
-    events = read_events(path)
-    probe_rows, rt_records = _compute_probe_summaries(events)
-    session_rows = _session_summaries(events, probe_rows, rt_records)
-    derived_rows = _derived_rows(session_rows, probe_rows)
-    return {
-        "derived_runner_metrics": derived_rows,
-        "runner_session_summary": session_rows,
-        "runner_probe_summary": probe_rows,
+def write_metric_outputs(events: list[dict[str, Any]], output_dir: str | Path) -> dict[str, Path]:
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+    metrics = compute_metrics(events)
+    paths = {
+        "metrics": output_path / "derived_runner_metrics.csv",
+        "session_summary": output_path / "runner_session_summary.csv",
+        "probe_summary": output_path / "runner_probe_summary.csv",
     }
 
+    metric_fields = ["session_id", "episode_id", "probe_id", "metric_name", "value"]
+    with paths["metrics"].open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=metric_fields)
+        writer.writeheader()
+        writer.writerows(metrics)
 
-def _fieldnames(rows: list[dict[str, str]]) -> list[str]:
-    fields: list[str] = []
-    for row in rows:
-        for field in row:
-            if field not in fields:
-                fields.append(field)
-    return fields
+    session_rows = [row for row in metrics if not row["episode_id"] and not row["probe_id"]]
+    with paths["session_summary"].open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=metric_fields)
+        writer.writeheader()
+        writer.writerows(session_rows)
 
+    probe_rows = [row for row in metrics if row["probe_id"]]
+    with paths["probe_summary"].open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=metric_fields)
+        writer.writeheader()
+        writer.writerows(probe_rows)
 
-def write_runner_outputs(metrics: dict[str, list[dict[str, str]]], output_dir: str | Path) -> None:
-    directory = Path(output_dir)
-    directory.mkdir(parents=True, exist_ok=True)
-    for key in OUTPUT_KEYS:
-        rows = metrics.get(key, [])
-        path = directory / f"{key}.csv"
-        fieldnames = _fieldnames(rows)
-        with path.open("w", encoding="utf-8", newline="") as handle:
-            if not fieldnames:
-                handle.write("")
-                continue
-            writer = csv.DictWriter(handle, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
+    return paths
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Compute PsyGodot runner derived metrics.")
-    parser.add_argument("input", type=Path)
-    parser.add_argument("output_dir", type=Path)
-    args = parser.parse_args()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", help="Input runner JSONL file")
+    parser.add_argument("output_dir", help="Directory for runner metric CSV files")
+    args = parser.parse_args(argv)
 
-    metrics = compute_runner_metrics(args.input)
-    write_runner_outputs(metrics, args.output_dir)
-    print(f"wrote={args.output_dir} rows={len(metrics['derived_runner_metrics'])}")
+    events, errors = load_jsonl(args.input)
+    if errors:
+        for error in errors:
+            print(error["message"], file=sys.stderr)
+        return 1
+    paths = write_metric_outputs(events, args.output_dir)
+    for path in paths.values():
+        print(path)
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

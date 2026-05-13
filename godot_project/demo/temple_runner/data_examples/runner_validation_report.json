@@ -1,0 +1,107 @@
+{
+  "event_counts": {
+    "collision": 4,
+    "episode_end": 4,
+    "episode_start": 4,
+    "feedback_negative": 4,
+    "feedback_positive": 4,
+    "jump_response": 1,
+    "lane_change": 2,
+    "marker_sent": 51,
+    "near_miss": 4,
+    "no_response": 1,
+    "obstacle_onset": 4,
+    "path_choice_onset": 4,
+    "probe_end": 4,
+    "probe_start": 4,
+    "probe_timeout": 4,
+    "punishment_hit": 4,
+    "punishment_onset": 4,
+    "reward_collected": 2,
+    "reward_onset": 2,
+    "risky_path_chosen": 1,
+    "safe_path_chosen": 3,
+    "session_end": 1,
+    "session_start": 1,
+    "speed_change": 4,
+    "successful_avoidance": 4
+  },
+  "marker_counts": {
+    "by_label": {
+      "collision": 4,
+      "feedback_negative": 4,
+      "feedback_positive": 4,
+      "jump_response": 1,
+      "lane_change": 2,
+      "near_miss": 4,
+      "obstacle_onset": 4,
+      "path_choice_onset": 4,
+      "probe_timeout": 4,
+      "punishment_hit": 4,
+      "punishment_onset": 4,
+      "reward_collected": 2,
+      "reward_onset": 2,
+      "speed_change": 4,
+      "successful_avoidance": 4
+    },
+    "total": 51
+  },
+  "metric_ranges": {
+    "collision_rate": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "distance_m": {
+      "max": 14.0,
+      "min": 14.0
+    },
+    "episode_survival_time_ms": {
+      "max": 3.176,
+      "min": 0.04
+    },
+    "hazard_hit_rate": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "movement_entropy": {
+      "max": 0.491237,
+      "min": 0.491237
+    },
+    "near_miss_rate": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "obstacle_response_rt_ms": {
+      "max": 0.273,
+      "min": 0.106
+    },
+    "post_error_slowing_ms": {
+      "max": -0.137,
+      "min": -0.137
+    },
+    "reward_collection_rate": {
+      "max": 1.0,
+      "min": 1.0
+    },
+    "risky_path_choice_rate": {
+      "max": 0.25,
+      "min": 0.25
+    },
+    "score": {
+      "max": 140.0,
+      "min": 140.0
+    },
+    "total_run_time_ms": {
+      "max": 3.503,
+      "min": 3.503
+    }
+  },
+  "probe_counts": {
+    "by_probe_type": {
+      "runner_response": 4
+    },
+    "ended": 4,
+    "started": 4
+  },
+  "validation_errors": []
+}

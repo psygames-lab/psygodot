@@ -1,0 +1,5 @@
+session_id,episode_id,probe_id,metric_name,value
+S_20260513_084218_2292,E_00001,P_00001,obstacle_response_rt_ms,0.273
+S_20260513_084218_2292,E_00001,P_00002,obstacle_response_rt_ms,0.106
+S_20260513_084218_2292,E_00001,P_00003,obstacle_response_rt_ms,0.161
+S_20260513_084218_2292,E_00001,P_00004,obstacle_response_rt_ms,0.141

@@ -1,15 +1,35 @@
 # Metric Definitions
 
-All metrics are derived from raw JSONL events.
+All active metrics are derived from runner JSONL events. Metrics are recomputable without Godot scene state.
 
-- `choice_rt_ms`: milliseconds between `decision_onset` and `response_made` within the same probe.
-- `choice`: response choice recorded on `response_made`.
-- `rewarded`: whether the episode received `feedback_positive`.
-- `stay_after_win`: current choice equals previous choice after previous episode was rewarded.
-- `switch_after_loss`: current choice differs from previous choice after previous episode was not rewarded.
-- `perseverative_error`: after a rule shift, choosing the previously rewarded option and receiving negative feedback.
-- `learning_slope`: difference between late-window and early-window reward rates within a session.
+## Session Metrics
 
-## Runner Metrics
+- `total_run_time_ms`: milliseconds between `session_start` and `session_end`.
+- `score`: maximum score observed in runner game payloads.
+- `distance_m`: distance advanced across runner game payloads.
+- `collision_rate`: `collision` events divided by obstacle opportunities.
+- `near_miss_rate`: `near_miss` events divided by obstacle opportunities.
+- `reward_collection_rate`: `reward_collected` events divided by `reward_onset` events.
+- `hazard_hit_rate`: `punishment_hit` or `hazard_hit` events divided by `punishment_onset` events.
+- `risky_path_choice_rate`: `risky_path_chosen` events divided by `path_choice_onset` events.
+- `post_error_slowing_ms`: response latency change after an error probe compared with non-post-error probes.
+- `movement_entropy`: entropy of lane occupancy samples in runner player payloads.
 
-Runner-specific metrics are documented in `godot_project/demo/continuous_runner/docs/metric_definitions_runner.md`.
+## Episode Metrics
+
+- `episode_survival_time_ms`: milliseconds between each `episode_start` and matching `episode_end`.
+
+## Probe Metrics
+
+- `obstacle_response_rt_ms`: latency from `obstacle_onset` or `conflict_high` to the first qualifying response in the same probe.
+
+## Output Files
+
+The runner analysis writes:
+
+- `derived_runner_metrics.csv`
+- `runner_session_summary.csv`
+- `runner_probe_summary.csv`
+- `runner_validation_report.json`
+
+See `godot_project/demo/temple_runner/docs/metric_definitions_runner.md` for demo-local metric notes.

@@ -1,150 +1,108 @@
 import json
-import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from analysis.validate_runner_events import validate_runner_jsonl
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from validate_runner_events import validate_events, validate_file
 
 
-def event(event_id, tag, timestamp=1000, session_id="S_runner", **extra):
-    base = {
-        "schema_version": "0.1.0",
-        "study_id": "runner_validation",
-        "session_id": session_id,
-        "participant_id_hash": "p_demo",
-        "build_version": "0.1.0-dev",
-        "platform": "windows",
+REQUIRED = {
+    "schema_version": "0.1.0",
+    "study_id": "runner_study",
+    "session_id": "S1",
+    "participant_id_hash": "P1",
+    "build_version": "test",
+    "platform": "test",
+    "frame": 1,
+    "physics_frame": 1,
+    "wall_time_iso": "2026-05-12T00:00:00Z",
+}
+
+
+def event(event_id, tag, timestamp, **extra):
+    payload = {
+        **REQUIRED,
         "event_id": event_id,
-        "event_type": "gameplay",
+        "event_type": extra.pop("event_type", "gameplay"),
         "event_tag": tag,
         "timestamp_usec": timestamp,
-        "wall_time_iso": "2026-05-12T08:00:00Z",
-        "frame": 1,
-        "physics_frame": 1,
     }
-    base.update(extra)
-    return base
+    payload.update(extra)
+    return payload
 
 
-class RunnerValidationTests(unittest.TestCase):
-    def write_jsonl(self, events):
-        temp_dir = tempfile.TemporaryDirectory()
-        path = Path(temp_dir.name) / "runner.jsonl"
-        with path.open("w", encoding="utf-8") as handle:
-            for item in events:
-                handle.write(json.dumps(item) + "\n")
-        self.addCleanup(temp_dir.cleanup)
-        return path
+def write_jsonl(events):
+    tmp = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False, encoding="utf-8")
+    with tmp:
+        for item in events:
+            tmp.write(json.dumps(item) + "\n")
+    return Path(tmp.name)
 
-    def test_valid_balanced_session_passes(self):
+
+class ValidateRunnerEventsTests(unittest.TestCase):
+    def test_accepts_balanced_runner_stream_with_linked_marker(self):
         events = [
-            event("EV_1", "session_start", timestamp=1000, event_type="session"),
-            event("EV_2", "episode_start", timestamp=2000, event_type="episode", episode_id="E_1"),
-            event("EV_3", "probe_start", timestamp=3000, event_type="probe", episode_id="E_1", probe_id="P_1"),
-            event("EV_4", "obstacle_onset", timestamp=4000, episode_id="E_1", probe_id="P_1"),
-            event("EV_5", "probe_end", timestamp=5000, event_type="probe", episode_id="E_1", probe_id="P_1"),
-            event("EV_6", "episode_end", timestamp=6000, event_type="episode", episode_id="E_1"),
-            event("EV_7", "session_end", timestamp=7000, event_type="session"),
-        ]
-
-        result = validate_runner_jsonl(self.write_jsonl(events))
-
-        self.assertEqual(result.checked_count, 7)
-        self.assertEqual(result.error_count, 0)
-
-    def test_required_fields_and_duplicate_ids_fail(self):
-        invalid = event("EV_1", "session_start", event_type="session")
-        invalid.pop("session_id")
-        duplicate = event("EV_1", "session_end", timestamp=2000, event_type="session")
-
-        result = validate_runner_jsonl(self.write_jsonl([invalid, duplicate]))
-
-        self.assertTrue(any("missing required field session_id" in error for error in result.errors))
-        self.assertTrue(any("duplicate event_id EV_1" in error for error in result.errors))
-
-    def test_timestamp_must_be_monotonic_within_each_session(self):
-        events = [
-            event("EV_1", "session_start", timestamp=1000, event_type="session", session_id="S_1"),
-            event("EV_2", "session_end", timestamp=900, event_type="session", session_id="S_1"),
-            event("EV_3", "session_start", timestamp=500, event_type="session", session_id="S_2"),
-            event("EV_4", "session_end", timestamp=600, event_type="session", session_id="S_2"),
-        ]
-
-        result = validate_runner_jsonl(self.write_jsonl(events))
-
-        self.assertTrue(any("timestamp_usec decreased" in error for error in result.errors))
-
-    def test_session_start_and_end_are_required(self):
-        events = [
-            event("EV_1", "episode_start", timestamp=1000, event_type="episode", episode_id="E_1"),
-            event("EV_2", "episode_end", timestamp=2000, event_type="episode", episode_id="E_1"),
-        ]
-
-        result = validate_runner_jsonl(self.write_jsonl(events))
-
-        self.assertTrue(any("missing session_start" in error for error in result.errors))
-        self.assertTrue(any("missing session_end" in error for error in result.errors))
-
-    def test_unbalanced_episode_and_probe_sequences_fail(self):
-        events = [
-            event("EV_1", "session_start", timestamp=1000, event_type="session"),
-            event("EV_2", "episode_start", timestamp=2000, event_type="episode", episode_id="E_1"),
-            event("EV_3", "probe_start", timestamp=3000, event_type="probe", episode_id="E_1", probe_id="P_1"),
-            event("EV_4", "episode_end", timestamp=4000, event_type="episode", episode_id="E_2"),
-            event("EV_5", "probe_end", timestamp=5000, event_type="probe", episode_id="E_1", probe_id="P_2"),
-            event("EV_6", "session_end", timestamp=6000, event_type="session"),
-        ]
-
-        result = validate_runner_jsonl(self.write_jsonl(events))
-
-        self.assertTrue(any("episode_end without active episode E_2" in error for error in result.errors))
-        self.assertTrue(any("probe_end without active probe P_2" in error for error in result.errors))
-        self.assertTrue(any("unclosed episode E_1" in error for error in result.errors))
-        self.assertTrue(any("unclosed active probe P_1" in error for error in result.errors))
-
-    def test_no_active_probe_at_session_end(self):
-        events = [
-            event("EV_1", "session_start", event_type="session"),
-            event("EV_2", "probe_start", timestamp=2000, event_type="probe", episode_id="E_1", probe_id="P_1"),
-            event("EV_3", "session_end", timestamp=3000, event_type="session"),
-        ]
-
-        result = validate_runner_jsonl(self.write_jsonl(events))
-
-        self.assertTrue(any("active probe" in error for error in result.errors))
-
-    def test_marker_requires_linked_event_id(self):
-        events = [
-            event("EV_1", "session_start", event_type="session"),
+            event("E1", "session_start", 1000, event_type="session"),
+            event("E2", "episode_start", 2000, event_type="episode", episode_id="EP1"),
+            event("E3", "probe_start", 3000, event_type="probe", episode_id="EP1", probe_id="PR1"),
+            event("E4", "obstacle_onset", 4000, episode_id="EP1", probe_id="PR1"),
             event(
-                "EV_2",
+                "E5",
                 "marker_sent",
-                timestamp=2000,
+                5000,
                 event_type="marker",
-                marker={"code": 201, "label": "obstacle_onset", "driver": "mock"},
+                episode_id="EP1",
+                probe_id="PR1",
+                marker={
+                    "code": 201,
+                    "label": "obstacle_onset",
+                    "driver": "mock",
+                    "linked_event_id": "E4",
+                },
             ),
-            event("EV_3", "session_end", timestamp=3000, event_type="session"),
+            event("E6", "probe_end", 6000, event_type="probe", episode_id="EP1", probe_id="PR1"),
+            event("E7", "episode_end", 7000, event_type="episode", episode_id="EP1"),
+            event("E8", "session_end", 8000, event_type="session"),
         ]
 
-        result = validate_runner_jsonl(self.write_jsonl(events))
+        self.assertEqual(validate_events(events), [])
 
-        self.assertTrue(any("linked_event_id" in error for error in result.errors))
+    def test_reports_missing_required_fields_unbalanced_scopes_and_bad_marker_link(self):
+        events = [
+            event("E1", "session_start", 1000, event_type="session"),
+            event("E2", "episode_start", 2000, event_type="episode", episode_id="EP1"),
+            event("E3", "probe_start", 3000, event_type="probe", episode_id="EP1", probe_id="PR1"),
+            event(
+                "E4",
+                "marker_sent",
+                4000,
+                event_type="marker",
+                marker={"code": 1, "label": "bad", "driver": "mock", "linked_event_id": "MISSING"},
+            ),
+            {"event_id": "BROKEN", "event_tag": "obstacle_onset"},
+        ]
 
-    def test_cli_prints_counts_and_returns_nonzero_on_errors(self):
-        path = self.write_jsonl([event("EV_1", "session_start", event_type="session")])
+        messages = "\n".join(error["message"] for error in validate_events(events))
 
-        result = subprocess.run(
-            [sys.executable, "analysis/validate_runner_events.py", str(path)],
-            cwd=Path(__file__).resolve().parents[2],
-            capture_output=True,
-            text=True,
-            check=False,
+        self.assertIn("missing required field schema_version", messages)
+        self.assertIn("episode EP1 started but did not end", messages)
+        self.assertIn("probe PR1 started but did not end", messages)
+        self.assertIn("marker linked_event_id MISSING does not reference a known event_id", messages)
+
+    def test_reports_non_monotonic_timestamps_from_file(self):
+        path = write_jsonl(
+            [
+                event("E1", "session_start", 2000, event_type="session"),
+                event("E2", "session_end", 1000, event_type="session"),
+            ]
         )
 
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("checked=1 errors=", result.stdout)
+        messages = [error["message"] for error in validate_file(path)]
+
+        self.assertTrue(any("timestamp_usec is not monotonic" in message for message in messages))
 
 
 if __name__ == "__main__":

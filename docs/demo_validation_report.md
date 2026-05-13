@@ -1,63 +1,54 @@
-# Continuous Runner Demo Validation Report
+# Temple Runner Demo Validation Report
 
-Date: 2026-05-12
+Date: 2026-05-13
 
 ## Scenes
 
-- Main playable runner: `res://demo/continuous_runner/scenes/RunnerDemo.tscn`
-- Automated validation: `res://demo/continuous_runner/scenes/ValidationRunner.tscn`
-- Software timing validation: `res://demo/continuous_runner/scenes/TimingValidation.tscn`
+- Main playable runner: `res://demo/temple_runner/scenes/TempleRunnerGame.tscn`
+- Automated validation: `res://demo/temple_runner/scenes/ValidationRunner.tscn`
 
 ## Example Data
 
-- Raw events: `godot_project/demo/continuous_runner/data_examples/raw_runner_events_example.jsonl`
-- Derived metrics: `godot_project/demo/continuous_runner/data_examples/derived_runner_metrics_example.csv`
-- Session summary: `godot_project/demo/continuous_runner/data_examples/runner_session_summary_example.csv`
-- Probe summary: `godot_project/demo/continuous_runner/data_examples/runner_probe_summary_example.csv`
-- Validation report: `godot_project/demo/continuous_runner/data_examples/runner_validation_report_example.json`
+- Raw events: `godot_project/demo/temple_runner/data_examples/raw_runner_events_example.jsonl`
+- Derived metrics: `godot_project/demo/temple_runner/data_examples/derived_runner_metrics.csv`
+- Session summary: `godot_project/demo/temple_runner/data_examples/runner_session_summary.csv`
+- Probe summary: `godot_project/demo/temple_runner/data_examples/runner_probe_summary.csv`
+- Validation report: `godot_project/demo/temple_runner/data_examples/runner_validation_report.json`
 
 ## Event Counts
 
-The curated example contains 341 raw events with 25 probes, 5 episodes, and 119 linked mock marker events. Validation reports `errors=0`.
+The current validation example contains session, episode, probe, gameplay, feedback, and linked mock marker events. The generated validation report has `validation_errors: []`.
 
-Key event tags include `obstacle_onset`, `reward_onset`, `punishment_onset`, `path_choice_onset`, `conflict_high`, `response_made`, `lane_change`, `slide_response`, `reward_collected`, `collision`, `near_miss`, `successful_avoidance`, and `marker_sent`.
+Key event counts from the latest example:
+
+- `session_start`: 1
+- `session_end`: 1
+- `episode_start`: 4
+- `episode_end`: 4
+- `probe_start`: 4
+- `probe_end`: 4
+- `marker_sent`: 51
+- `obstacle_onset`: 4
+- `reward_onset`: 2
+- `punishment_onset`: 4
+- `path_choice_onset`: 4
+- `reward_collected`: 2
+- `collision`: 4
+- `near_miss`: 4
+- `successful_avoidance`: 4
 
 ## Metrics Snapshot
 
-From the example session:
+From the latest generated validation example:
 
-- `number_of_episodes`: 5
-- `number_of_probes`: 25
-- `collision_rate`: 0.100
-- `near_miss_rate`: 0.500
-- `reward_collection_rate`: 0.300
-- `punishment_hit_rate`: 0.000
-- `movement_entropy`: 1.406
-- `probe_timeout_rate`: 0.000
+- `total_run_time_ms`: 3.503
+- `score`: 140
+- `distance_m`: 14
+- `reward_collection_rate`: 1.0
+- `risky_path_choice_rate`: 0.25
+- `movement_entropy`: 0.491237
+- `obstacle_response_rt_ms`: 0.106 to 0.273
 
-## Validation Scenarios
+## Known Limits
 
-`ValidationRunner.tscn` runs four deterministic responder profiles:
-
-- `perfect_agent`
-- `noisy_agent`
-- `risk_seeking_agent`
-- `avoidant_agent`
-
-Each profile writes a separate raw JSONL log and uses the same PsyGodot instrumentation path as the playable runner.
-
-## Timing Validation
-
-`TimingValidation.tscn` logged 100 `cue_onset` flash events and 100 linked `marker_sent` events with zero missing markers in software-side analysis. This validates logging and scheduling behavior only, not physical display onset.
-
-## Known Issues
-
-- Current visuals are intentionally primitive.
-- Godot MCP is installed but this session needed direct Godot console execution because the MCP process cached an old executable path.
-- Physical timing validation requires external hardware.
-
-## Next Improvements
-
-- Add richer path geometry and visual affordances.
-- Add screenshot-based visual QA once MCP/browser visual tooling is stable.
-- Add optional hardware trigger drivers behind the existing mock marker interface.
+The validation scene is deterministic and compact; it is meant to prove logging, marker linking, probe balancing, and metric recomputation. Manual play remains the primary check for game feel. Real hardware timing and physical display onset are still out of scope.

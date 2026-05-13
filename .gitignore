@@ -10,3 +10,5 @@ godot_project/user_data/
 godot_project/.godot/
 data/
 *.translation
+*.uid
+*.import

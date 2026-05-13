@@ -1,0 +1,11 @@
+session_id,episode_id,probe_id,metric_name,value
+S_20260513_084218_2292,,,total_run_time_ms,3.503
+S_20260513_084218_2292,,,score,140.0
+S_20260513_084218_2292,,,distance_m,14.0
+S_20260513_084218_2292,,,collision_rate,1.0
+S_20260513_084218_2292,,,near_miss_rate,1.0
+S_20260513_084218_2292,,,reward_collection_rate,1.0
+S_20260513_084218_2292,,,hazard_hit_rate,1.0
+S_20260513_084218_2292,,,risky_path_choice_rate,0.25
+S_20260513_084218_2292,,,post_error_slowing_ms,-0.137
+S_20260513_084218_2292,,,movement_entropy,0.491237

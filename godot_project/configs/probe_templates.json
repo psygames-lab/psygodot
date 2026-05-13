@@ -1,12 +1,14 @@
 {
-  "reversal_choice": {
-    "probe_type": "reversal_choice",
-    "expected_events": [
-      "cue_onset",
-      "decision_onset",
-      "response_made",
-      "feedback_positive",
-      "feedback_negative"
-    ]
+  "obstacle_avoidance": {
+    "probe_type": "obstacle_avoidance",
+    "expected_events": ["probe_start", "obstacle_onset", "lane_change", "jump_response", "slide_response", "collision", "successful_avoidance", "probe_end"]
+  },
+  "reward_approach": {
+    "probe_type": "reward_approach",
+    "expected_events": ["probe_start", "reward_onset", "lane_change", "reward_collected", "probe_end"]
+  },
+  "risky_path_choice": {
+    "probe_type": "risky_path_choice",
+    "expected_events": ["probe_start", "path_choice_onset", "safe_path_chosen", "risky_path_chosen", "probe_end"]
   }
 }

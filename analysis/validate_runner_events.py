@@ -1,13 +1,16 @@
+#!/usr/bin/env python
+"""Validate PsyGodot continuous-runner JSONL event streams."""
+
 from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
+import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Any
 
 
-REQUIRED_FIELDS = (
+REQUIRED_FIELDS = {
     "schema_version",
     "study_id",
     "session_id",
@@ -21,187 +24,170 @@ REQUIRED_FIELDS = (
     "wall_time_iso",
     "frame",
     "physics_frame",
-)
-
-PROBE_SCOPED_TAGS = {
-    "probe_start",
-    "probe_end",
-    "cue_onset",
-    "decision_onset",
-    "approach_start",
-    "response_made",
-    "feedback_onset",
-    "feedback_positive",
-    "feedback_negative",
-    "obstacle_onset",
-    "reward_onset",
-    "punishment_onset",
-    "path_choice_onset",
-    "collision",
-    "near_miss",
-    "successful_avoidance",
-    "reward_collected",
-    "reward_missed",
-    "punishment_hit",
-    "safe_path_chosen",
-    "risky_path_chosen",
-    "probe_timeout",
-    "conflict_high",
 }
 
-
-@dataclass
-class RunnerValidationResult:
-    checked_count: int
-    errors: list[str]
-
-    @property
-    def error_count(self) -> int:
-        return len(self.errors)
+MARKER_FIELDS = {"code", "label", "driver", "linked_event_id"}
 
 
-def _iter_jsonl(path: Path) -> Iterable[tuple[int, dict | None, str | None]]:
-    with path.open("r", encoding="utf-8-sig") as handle:
+def load_jsonl(path: str | Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    events: list[dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
+    with Path(path).open("r", encoding="utf-8") as handle:
         for line_number, line in enumerate(handle, start=1):
-            stripped = line.strip()
-            if not stripped:
+            if not line.strip():
                 continue
             try:
-                yield line_number, json.loads(stripped), None
+                item = json.loads(line)
             except json.JSONDecodeError as exc:
-                yield line_number, None, f"line {line_number}: invalid JSON: {exc.msg}"
+                errors.append({"line": line_number, "message": f"invalid JSON: {exc.msg}"})
+                continue
+            if not isinstance(item, dict):
+                errors.append({"line": line_number, "message": "JSONL row must be an object"})
+                continue
+            item.setdefault("_line", line_number)
+            events.append(item)
+    return events, errors
 
 
-def _validate_required(event: dict, line_number: int, seen_ids: set[str]) -> list[str]:
-    errors: list[str] = []
-    for field in REQUIRED_FIELDS:
+def _error(event: dict[str, Any] | None, message: str) -> dict[str, Any]:
+    result: dict[str, Any] = {"message": message}
+    if event is not None:
+        if "_line" in event:
+            result["line"] = event["_line"]
+        if "event_id" in event:
+            result["event_id"] = event["event_id"]
+    return result
+
+
+def _check_required_fields(event: dict[str, Any]) -> list[dict[str, Any]]:
+    errors = []
+    for field in sorted(REQUIRED_FIELDS):
         if field not in event:
-            errors.append(f"line {line_number}: missing required field {field}")
+            errors.append(_error(event, f"missing required field {field}"))
+    return errors
 
-    event_id = event.get("event_id")
-    if isinstance(event_id, str):
-        if event_id in seen_ids:
-            errors.append(f"line {line_number}: duplicate event_id {event_id}")
-        seen_ids.add(event_id)
 
-    event_tag = event.get("event_tag")
-    if event_tag in PROBE_SCOPED_TAGS:
-        if not event.get("probe_id"):
-            errors.append(f"line {line_number}: probe-scoped event missing probe_id")
-        if not event.get("episode_id"):
-            errors.append(f"line {line_number}: probe-scoped event missing episode_id")
+def _check_marker(event: dict[str, Any], event_ids: set[str]) -> list[dict[str, Any]]:
+    if event.get("event_type") != "marker" and event.get("event_tag") != "marker_sent":
+        return []
 
-    if event_tag == "marker_sent":
-        marker = event.get("marker")
-        if not isinstance(marker, dict):
-            errors.append(f"line {line_number}: marker_sent missing marker object")
-        else:
-            for field in ("code", "label", "driver", "linked_event_id"):
-                if field not in marker:
-                    errors.append(f"line {line_number}: marker missing marker.{field}")
+    errors = []
+    marker = event.get("marker")
+    if not isinstance(marker, dict):
+        return [_error(event, "marker event missing marker object")]
+
+    for field in sorted(MARKER_FIELDS):
+        if field not in marker:
+            errors.append(_error(event, f"marker missing required field marker.{field}"))
+
+    linked_event_id = marker.get("linked_event_id")
+    if linked_event_id is not None and linked_event_id not in event_ids:
+        errors.append(
+            _error(
+                event,
+                f"marker linked_event_id {linked_event_id} does not reference a known event_id",
+            )
+        )
+    return errors
+
+
+def validate_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return validation errors for already-loaded runner events."""
+    errors: list[dict[str, Any]] = []
+    event_ids = {event.get("event_id") for event in events if event.get("event_id") is not None}
+    previous_timestamp: int | float | None = None
+    session_starts = 0
+    session_ends = 0
+    open_episodes: dict[str, dict[str, Any]] = {}
+    open_probes: dict[str, dict[str, Any]] = {}
+
+    for event in events:
+        errors.extend(_check_required_fields(event))
+
+        timestamp = event.get("timestamp_usec")
+        if isinstance(timestamp, (int, float)):
+            if previous_timestamp is not None and timestamp < previous_timestamp:
+                errors.append(_error(event, "timestamp_usec is not monotonic"))
+            previous_timestamp = timestamp
+        elif "timestamp_usec" in event:
+            errors.append(_error(event, "timestamp_usec must be numeric"))
+
+        tag = event.get("event_tag")
+        event_type = event.get("event_type")
+
+        if tag == "session_start":
+            session_starts += 1
+        elif tag == "session_end":
+            session_ends += 1
+            if session_ends > session_starts:
+                errors.append(_error(event, "session_end encountered before session_start"))
+
+        if event_type in {"episode", "probe", "gameplay"} and tag not in {"session_start", "session_end"}:
+            if event_type != "gameplay" or tag in {"episode_start", "episode_end", "probe_start", "probe_end"}:
+                if "episode_id" not in event:
+                    errors.append(_error(event, "episode-scoped event missing episode_id"))
+
+        if event_type == "probe" or tag in {"probe_start", "probe_end"}:
+            if "probe_id" not in event:
+                errors.append(_error(event, "probe-scoped event missing probe_id"))
+
+        if tag == "episode_start":
+            episode_id = event.get("episode_id")
+            if episode_id in open_episodes:
+                errors.append(_error(event, f"episode {episode_id} started before previous end"))
+            elif episode_id is not None:
+                open_episodes[str(episode_id)] = event
+        elif tag == "episode_end":
+            episode_id = event.get("episode_id")
+            if episode_id not in open_episodes:
+                errors.append(_error(event, f"episode {episode_id} ended without a start"))
+            else:
+                del open_episodes[str(episode_id)]
+
+        if tag == "probe_start":
+            probe_id = event.get("probe_id")
+            if probe_id in open_probes:
+                errors.append(_error(event, f"probe {probe_id} started before previous end"))
+            elif probe_id is not None:
+                open_probes[str(probe_id)] = event
+        elif tag == "probe_end":
+            probe_id = event.get("probe_id")
+            if probe_id not in open_probes:
+                errors.append(_error(event, f"probe {probe_id} ended without a start"))
+            else:
+                del open_probes[str(probe_id)]
+
+        errors.extend(_check_marker(event, event_ids))
+
+    if session_starts == 0:
+        errors.append(_error(None, "missing session_start"))
+    if session_ends == 0:
+        errors.append(_error(None, "missing session_end"))
+    if session_starts != session_ends:
+        errors.append(_error(None, f"session_start/session_end count mismatch: {session_starts}/{session_ends}"))
+
+    for episode_id in sorted(open_episodes):
+        errors.append(_error(open_episodes[episode_id], f"episode {episode_id} started but did not end"))
+    for probe_id in sorted(open_probes):
+        errors.append(_error(open_probes[probe_id], f"probe {probe_id} started but did not end"))
 
     return errors
 
 
-def validate_runner_jsonl(path: str | Path) -> RunnerValidationResult:
-    jsonl_path = Path(path)
-    errors: list[str] = []
-    seen_ids: set[str] = set()
-    checked_count = 0
-    last_timestamp_by_session: dict[str, int] = {}
-    saw_session_start: set[str] = set()
-    saw_session_end: set[str] = set()
-    active_episodes: dict[str, set[str]] = {}
-    active_probes: dict[str, set[str]] = {}
-
-    for line_number, event, parse_error in _iter_jsonl(jsonl_path):
-        checked_count += 1
-        if parse_error is not None:
-            errors.append(parse_error)
-            continue
-        if event is None:
-            continue
-
-        errors.extend(_validate_required(event, line_number, seen_ids))
-
-        session_id = event.get("session_id")
-        event_tag = event.get("event_tag")
-        timestamp = event.get("timestamp_usec")
-        if isinstance(session_id, str) and isinstance(timestamp, int):
-            previous = last_timestamp_by_session.get(session_id)
-            if previous is not None and timestamp < previous:
-                errors.append(
-                    f"line {line_number}: timestamp_usec decreased within session {session_id} "
-                    f"from {previous} to {timestamp}"
-                )
-            last_timestamp_by_session[session_id] = timestamp
-
-        if not isinstance(session_id, str) or not session_id:
-            continue
-
-        session_episodes = active_episodes.setdefault(session_id, set())
-        session_probes = active_probes.setdefault(session_id, set())
-        episode_id = event.get("episode_id")
-        probe_id = event.get("probe_id")
-
-        if event_tag == "session_start":
-            if session_id in saw_session_start and session_id not in saw_session_end:
-                errors.append(f"line {line_number}: session_start while session {session_id} is active")
-            saw_session_start.add(session_id)
-        elif event_tag == "session_end":
-            if session_id not in saw_session_start:
-                errors.append(f"line {line_number}: session_end without session_start for {session_id}")
-            if session_probes:
-                for active_probe in sorted(session_probes):
-                    errors.append(f"line {line_number}: active probe {active_probe} at session_end")
-            if session_episodes:
-                for active_episode in sorted(session_episodes):
-                    errors.append(f"line {line_number}: active episode {active_episode} at session_end")
-            saw_session_end.add(session_id)
-        elif event_tag == "episode_start" and isinstance(episode_id, str) and episode_id:
-            if episode_id in session_episodes:
-                errors.append(f"line {line_number}: episode_start while episode {episode_id} is active")
-            session_episodes.add(episode_id)
-        elif event_tag == "episode_end" and isinstance(episode_id, str) and episode_id:
-            if episode_id not in session_episodes:
-                errors.append(f"line {line_number}: episode_end without active episode {episode_id}")
-            else:
-                session_episodes.remove(episode_id)
-        elif event_tag == "probe_start" and isinstance(probe_id, str) and probe_id:
-            if probe_id in session_probes:
-                errors.append(f"line {line_number}: probe_start while probe {probe_id} is active")
-            session_probes.add(probe_id)
-        elif event_tag == "probe_end" and isinstance(probe_id, str) and probe_id:
-            if probe_id not in session_probes:
-                errors.append(f"line {line_number}: probe_end without active probe {probe_id}")
-            else:
-                session_probes.remove(probe_id)
-
-    all_sessions = set(last_timestamp_by_session) | saw_session_start | saw_session_end
-    for session_id in sorted(all_sessions):
-        if session_id not in saw_session_start:
-            errors.append(f"session {session_id}: missing session_start")
-        if session_id not in saw_session_end:
-            errors.append(f"session {session_id}: missing session_end")
-        for episode_id in sorted(active_episodes.get(session_id, ())):
-            errors.append(f"session {session_id}: unclosed episode {episode_id}")
-        for probe_id in sorted(active_probes.get(session_id, ())):
-            errors.append(f"session {session_id}: unclosed active probe {probe_id}")
-
-    return RunnerValidationResult(checked_count=checked_count, errors=errors)
+def validate_file(path: str | Path) -> list[dict[str, Any]]:
+    events, errors = load_jsonl(path)
+    return errors + validate_events(events)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate PsyGodot runner raw event JSONL.")
-    parser.add_argument("path", type=Path)
-    args = parser.parse_args()
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("input", help="Input runner JSONL file")
+    args = parser.parse_args(argv)
 
-    result = validate_runner_jsonl(args.path)
-    for error in result.errors:
-        print(error)
-    print(f"checked={result.checked_count} errors={result.error_count}")
-    return 1 if result.errors else 0
+    errors = validate_file(args.input)
+    print(json.dumps({"valid": not errors, "errors": errors}, indent=2, sort_keys=True))
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())
