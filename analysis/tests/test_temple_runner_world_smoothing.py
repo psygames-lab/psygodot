@@ -30,6 +30,12 @@ class TempleRunnerWorldSmoothingTests(unittest.TestCase):
         self.assertIn("const RECYCLE_AFTER_SEGMENTS := 3.0", source)
         self.assertIn("SEGMENT_LENGTH * RECYCLE_AFTER_SEGMENTS", source)
 
+    def test_obstacle_director_does_not_spawn_arch_pillars(self):
+        source = (ROOT / "godot_project" / "demo" / "temple_runner" / "scripts" / "obstacle_director.gd").read_text(encoding="utf-8")
+
+        self.assertNotIn("_add_arches_and_pillars(segment", source)
+        self.assertNotIn("func _add_arches_and_pillars", source)
+
 
 if __name__ == "__main__":
     unittest.main()

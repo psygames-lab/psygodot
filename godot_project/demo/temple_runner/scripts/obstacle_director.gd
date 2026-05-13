@@ -16,7 +16,6 @@ func _ready() -> void:
 func decorate_segment(segment: Node3D, segment_index: int, length: float) -> void:
 	_add_path(segment, length)
 	_add_side_jungle(segment, segment_index, length)
-	_add_arches_and_pillars(segment, segment_index, length)
 	if segment_index < 2:
 		_add_gem_row(segment, 0, -length * 0.36)
 		return
@@ -118,30 +117,6 @@ func _add_side_jungle(segment: Node3D, segment_index: int, length: float) -> voi
 			vine.position = Vector3(side * 4.7, 1.8, z - 0.8)
 			vine.rotation.x = PI * 0.5
 			segment.add_child(vine)
-
-func _add_arches_and_pillars(segment: Node3D, segment_index: int, length: float) -> void:
-	if segment_index % 2 != 0:
-		return
-	var z := -length * 0.86
-	for x in [-4.8, 4.8]:
-		var pillar := MeshInstance3D.new()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 0.42
-		mesh.bottom_radius = 0.55
-		mesh.height = 4.4
-		pillar.mesh = mesh
-		pillar.material_override = stone_mat
-		pillar.position = Vector3(x, 2.0, z)
-		segment.add_child(pillar)
-	var lintel := MeshInstance3D.new()
-	var lintel_mesh := BoxMesh.new()
-	lintel_mesh.size = Vector3(10.8, 0.55, 0.7)
-	lintel.mesh = lintel_mesh
-	lintel.material_override = stone_mat
-	lintel.position = Vector3(0.0, 4.25, z)
-	segment.add_child(lintel)
-	for x in [-5.2, 5.2]:
-		_add_torch(segment, x, z + 0.65)
 
 func _add_torch(segment: Node3D, x: float, z: float) -> void:
 	var bowl := MeshInstance3D.new()

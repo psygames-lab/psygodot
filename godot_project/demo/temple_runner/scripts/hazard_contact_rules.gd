@@ -23,3 +23,11 @@ static func should_damage(kind: String, player_position: Vector3, player_velocit
 
 static func was_cleared(kind: String, player_position: Vector3, player_velocity: Vector3, player_sliding: bool, hazard_lane: int) -> bool:
 	return not should_damage(kind, player_position, player_velocity, player_sliding, hazard_lane)
+
+static func should_damage_for_lane(kind: String, player_lane: int, player_position: Vector3, player_velocity: Vector3, player_sliding: bool, hazard_lane: int) -> bool:
+	if player_lane != hazard_lane:
+		return false
+	return should_damage(kind, player_position, player_velocity, player_sliding, hazard_lane)
+
+static func was_cleared_for_lane(kind: String, player_lane: int, player_position: Vector3, player_velocity: Vector3, player_sliding: bool, hazard_lane: int) -> bool:
+	return not should_damage_for_lane(kind, player_lane, player_position, player_velocity, player_sliding, hazard_lane)

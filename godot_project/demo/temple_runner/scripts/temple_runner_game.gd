@@ -328,7 +328,7 @@ func _resolve_hazard(area: Area3D) -> void:
 func _hazard_was_cleared(area: Area3D) -> bool:
 	var kind := String(area.get_meta("runner_kind", ""))
 	var hazard_lane := int(area.get_meta("runner_lane", 0))
-	return HazardContactRules.was_cleared(kind, player.position, player.velocity, player.is_sliding(), hazard_lane)
+	return HazardContactRules.was_cleared_for_lane(kind, player.lane, player.position, player.velocity, player.is_sliding(), hazard_lane)
 
 func _on_state_changed() -> void:
 	if hud:

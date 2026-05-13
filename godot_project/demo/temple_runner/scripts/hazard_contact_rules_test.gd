@@ -7,6 +7,8 @@ var failures: Array[String] = []
 func _ready() -> void:
 	_expect(not Rules.should_damage("block", Vector3(1.15, 0.0, 0.0), Vector3.ZERO, false, 0), "adjacent visual lane edge should not damage against a block")
 	_expect(Rules.should_damage("block", Vector3(0.0, 0.0, 0.0), Vector3.ZERO, false, 0), "centered block contact should damage")
+	_expect(not Rules.should_damage_for_lane("block", 1, Vector3(2.2, 0.0, 0.0), Vector3.ZERO, false, 0), "right-lane runner should not be damaged by a center-lane block")
+	_expect(Rules.should_damage_for_lane("block", 1, Vector3(3.0, 0.0, 0.0), Vector3.ZERO, false, 1), "right-lane runner should be damaged by a right-lane block")
 	_expect(not Rules.should_damage("gap", Vector3(0.0, 0.55, 0.0), Vector3(0.0, -2.0, 0.0), false, 0), "airborne runner should clear a gap while descending")
 	_expect(Rules.should_damage("gap", Vector3(0.0, 0.08, 0.0), Vector3(0.0, -2.0, 0.0), false, 0), "low descending runner should fall into a gap")
 	_expect(not Rules.should_damage("low_gate", Vector3(0.0, 0.0, 0.0), Vector3.ZERO, true, 0), "sliding runner should clear a low gate")
