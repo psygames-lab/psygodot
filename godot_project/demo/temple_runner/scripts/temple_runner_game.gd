@@ -37,7 +37,7 @@ var active_path_choice := {}
 
 func _ready() -> void:
 	headless = _is_headless_run()
-	verification_mode = headless or OS.get_cmdline_args().has("--scene")
+	verification_mode = headless or OS.get_cmdline_user_args().has("--psygodot-verify")
 	_build_scene()
 	state = GameStateScript.new()
 	state.changed.connect(_on_state_changed)
