@@ -357,6 +357,8 @@ func _show_start_screen(message: String = "") -> void:
 	player_name_edit.text = player_name
 	player_name_edit.grab_focus()
 	hud.text = "Enter player name and start. Move with WASD/arrows after the run begins."
+	if output_label and message == "":
+		output_label.text = ""
 
 func _on_player_name_submitted(_submitted_text: String) -> void:
 	_start_session_for_player(player_name_edit.text)
@@ -877,7 +879,7 @@ func _setup_telemetry() -> void:
 		"validation_mode": validation_mode
 	}, Callable(self, "_frame_sample_payload"))
 	if output_label:
-		output_label.text = "Saving: %s" % ProjectSettings.globalize_path(telemetry.get_raw_events_path())
+		output_label.text = "Telemetry active. Summary is written when the run ends."
 
 func _end_session(reason: String) -> void:
 	if session_closed:

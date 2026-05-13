@@ -146,6 +146,13 @@ class ArenaSurvivorStaticTests(unittest.TestCase):
 
         self.assertIn("participant_label", session_source)
 
+    def test_live_run_does_not_show_saving_as_end_state(self):
+        source = (PROJECT / "scripts" / "arena_survivor_game.gd").read_text(encoding="utf-8")
+
+        self.assertNotIn('output_label.text = "Saving:', source)
+        self.assertIn('output_label.text = "Telemetry active.', source)
+        self.assertIn('output_label.text = "Saved summary:', source)
+
 
 if __name__ == "__main__":
     unittest.main()
