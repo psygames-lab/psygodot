@@ -3,55 +3,56 @@
     "session_start": 1,
     "episode_start": 2,
     "wave_start": 2,
-    "marker_sent": 317,
+    "marker_sent": 319,
     "input_raw": 2,
     "input_action": 3,
     "frame_sample": 1800,
     "enemy_spawn": 28,
-    "weapon_fired": 81,
+    "weapon_fired": 82,
     "projectile_hit": 68,
     "enemy_killed": 27,
     "feedback_positive": 54,
     "pickup_spawn": 27,
     "pickup_collected": 25,
-    "probe_start": 11,
-    "probe_end": 11,
+    "probe_start": 13,
+    "probe_end": 13,
     "upgrade_choice_onset": 2,
     "upgrade_selected": 2,
     "wave_end": 1,
     "episode_end": 2,
+    "enemy_near": 1,
     "session_end": 1
   },
   "event_type_counts": {
     "session": 2,
     "episode": 4,
-    "gameplay": 263,
-    "marker": 317,
+    "gameplay": 265,
+    "marker": 319,
     "input": 5,
     "frame": 1800,
     "feedback": 54,
-    "probe": 22
+    "probe": 26
   },
   "metric_ranges": {
     "total_run_time_ms": {
-      "min": 29977.117,
-      "max": 29977.117
+      "min": 29974.35,
+      "max": 29974.35
     },
     "survival_time_ms": {
-      "min": 29977.117,
-      "max": 29977.117
+      "min": 29974.35,
+      "max": 29974.35
     },
     "frame_sample_count": {
       "min": 1800.0,
       "max": 1800.0
     },
     "mean_speed": {
-      "min": 229.872221,
-      "max": 229.872221
+      "min": 229.872223,
+      "max": 229.872223
     },
     "mean_nearest_enemy_distance": {
-      "min": 300.249388,
-      "max": 300.249388
+      "min": 296.373229,
+      "max": 296.373229
     },
     "damage_count": {
       "min": 0.0,
@@ -66,12 +67,12 @@
       "max": 0.925926
     },
     "weapon_fire_rate_per_min": {
-      "min": 162.123663,
-      "max": 162.123663
+      "min": 164.14034,
+      "max": 164.14034
     },
     "projectile_hit_rate": {
-      "min": 0.839506,
-      "max": 0.839506
+      "min": 0.829268,
+      "max": 0.829268
     },
     "upgrade_choice_count": {
       "min": 2.0,

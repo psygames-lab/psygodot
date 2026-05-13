@@ -62,6 +62,35 @@ class ArenaSurvivorStaticTests(unittest.TestCase):
         for token in required_tokens:
             self.assertIn(token, source)
 
+    def test_game_script_builds_visible_centered_arena_presentation(self):
+        source = (PROJECT / "scripts" / "arena_survivor_game.gd").read_text(encoding="utf-8")
+        required_tokens = [
+            "Camera2D.new()",
+            "camera.current = true",
+            "CanvasLayer.new()",
+            "world_root",
+            "actor_root",
+            "bullet_root",
+            "pickup_root",
+            "effect_root",
+            "weapon_orbit",
+            "_build_player_visual",
+            "_build_enemy_visual",
+            "_spawn_muzzle_flash",
+            "_spawn_impact_effect",
+            "_spawn_pickup_effect",
+            "_spawn_floating_text",
+            "_flash_player_damage",
+            "_update_enemy_health_bar",
+            "_update_visual_validation",
+            "visual_effect_count",
+        ]
+        for token in required_tokens:
+            self.assertIn(token, source)
+
+        self.assertNotIn("hud.position = Vector2(-610, -340)", source)
+        self.assertNotIn("upgrade_label.position = Vector2(-390, 245)", source)
+
     def test_telemetry_script_uses_core_psygodot_streams(self):
         source = (PROJECT / "scripts" / "arena_telemetry.gd").read_text(encoding="utf-8")
         required_tokens = [

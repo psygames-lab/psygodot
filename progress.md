@@ -3,6 +3,15 @@
 ## Last Iteration
 
 Date: 2026-05-13
+Task: Arena survivor visible game rebuild
+Commit: pending
+Files changed: arena survivor game presentation, README, static tests, validation data
+Tests run: pending final verification
+Result: Rebuilt the arena survivor presentation around a centered Camera2D, screen-space HUD, visible protagonist/weapon/enemies, bullet trails, impact/pickup/damage effects, and normal-play music/SFX while preserving PsyGodot telemetry.
+
+## Previous Iteration
+
+Date: 2026-05-13
 Task: Standalone arena survivor PsyGodot demo
 Commit: pending
 Files changed: new `godot_project_arena_survivor/`, generated assets/audio, arena telemetry, validation scene, arena analysis scripts, tests, Superpowers spec/plan

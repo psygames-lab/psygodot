@@ -24,6 +24,8 @@ Controls:
 
 The player controls a robot researcher in a lab arena. Enemies spawn in waves, the weapon fires automatically, defeated enemies drop energy pickups, and periodic upgrades alter speed, fire rate, or damage. The run ends when health reaches zero, while validation mode exits after a fixed 30-second run.
 
+The arena uses a centered `Camera2D`, a screen-space HUD, visible weapon orbit, bullet trails, muzzle flashes, hit bursts, pickup sparkles, floating text, enemy health bars, and damage flashes so the first screen reads as a game rather than a telemetry-only simulation.
+
 ## Assets And Audio
 
 Generated assets live in `assets/`:
@@ -32,6 +34,8 @@ Generated assets live in `assets/`:
 - WAV audio: music loop, shot, hit, pickup, damage, upgrade
 
 These files are generated locally and do not depend on network downloads or copyrighted asset packs.
+
+Normal editor play starts the music loop and plays SFX for shooting, hits, pickups, damage, and upgrades. Headless validation stays silent so automated runs do not leak audio resources.
 
 ## PsyGodot Validation
 

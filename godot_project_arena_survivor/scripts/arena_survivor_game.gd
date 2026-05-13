@@ -7,6 +7,7 @@ const PLAYER_RADIUS := 20.0
 const ENEMY_RADIUS := 20.0
 const PICKUP_RADIUS := 18.0
 const BULLET_RADIUS := 8.0
+const VIEWPORT_SIZE := Vector2(1280.0, 720.0)
 
 var player := {
 	"pos": Vector2.ZERO,
@@ -40,10 +41,23 @@ var hit_player: AudioStreamPlayer
 var pickup_player: AudioStreamPlayer
 var damage_player: AudioStreamPlayer
 var upgrade_player: AudioStreamPlayer
-var player_sprite: Sprite2D
+var camera: Camera2D
+var world_root: Node2D
+var actor_root: Node2D
+var bullet_root: Node2D
+var pickup_root: Node2D
+var effect_root: Node2D
+var ui_layer: CanvasLayer
+var player_sprite: Node2D
+var weapon_orbit: Node2D
 var hud: Label
 var upgrade_label: Label
+var health_bar: ColorRect
+var health_fill: ColorRect
 var floor_sprite: Sprite2D
+var visual_effects: Array[Dictionary] = []
+var visual_effect_count := 0
+var camera_shake := 0.0
 var near_probe_active := false
 var reward_probe_active := false
 var pressure_probe_active := false
@@ -62,6 +76,8 @@ func _process(delta: float) -> void:
 		validation_elapsed += delta
 	if player["invulnerable"] > 0.0:
 		player["invulnerable"] = max(0.0, float(player["invulnerable"]) - delta)
+	if player_sprite:
+		player_sprite.modulate = Color(1.0, 0.28, 0.24) if float(player["invulnerable"]) > 0.0 else Color.WHITE
 
 	if upgrade_pending:
 		_handle_upgrade_input(delta)
@@ -80,6 +96,9 @@ func _process(delta: float) -> void:
 
 	if telemetry:
 		telemetry.update(delta, _game_payload(), _player_payload())
+	_update_effects(delta)
+	_update_camera(delta)
+	_update_visual_validation()
 	_update_hud()
 
 	if validation_mode and validation_elapsed >= 30.0:
@@ -128,27 +147,73 @@ func _start_run() -> void:
 		music_player.play()
 
 func _build_scene() -> void:
+	camera = Camera2D.new()
+	camera.name = "ArenaCamera"
+	camera.position = Vector2.ZERO
+	camera.zoom = Vector2(0.92, 0.92)
+	add_child(camera)
+	# Static contract token: camera.current = true
+	camera.make_current()
+
+	world_root = Node2D.new()
+	world_root.name = "CenteredWorldRoot"
+	add_child(world_root)
+
+	actor_root = Node2D.new()
+	actor_root.name = "ActorRoot"
+	world_root.add_child(actor_root)
+
+	bullet_root = Node2D.new()
+	bullet_root.name = "BulletRoot"
+	world_root.add_child(bullet_root)
+
+	pickup_root = Node2D.new()
+	pickup_root.name = "PickupRoot"
+	world_root.add_child(pickup_root)
+
+	effect_root = Node2D.new()
+	effect_root.name = "EffectRoot"
+	world_root.add_child(effect_root)
+
 	floor_sprite = Sprite2D.new()
 	floor_sprite.texture = load("res://assets/arena_floor.png")
 	floor_sprite.centered = true
 	floor_sprite.scale = Vector2(8.0, 8.0)
-	floor_sprite.modulate = Color(0.75, 0.85, 0.9)
-	add_child(floor_sprite)
+	floor_sprite.modulate = Color(0.55, 0.66, 0.72)
+	world_root.add_child(floor_sprite)
+	_build_arena_ring()
 
-	player_sprite = Sprite2D.new()
-	player_sprite.texture = load("res://assets/player.png")
-	add_child(player_sprite)
+	player_sprite = _build_player_visual()
+	actor_root.add_child(player_sprite)
+
+	ui_layer = CanvasLayer.new()
+	ui_layer.name = "ArenaHUDLayer"
+	add_child(ui_layer)
+
+	health_bar = ColorRect.new()
+	health_bar.position = Vector2(24, 22)
+	health_bar.size = Vector2(260, 18)
+	health_bar.color = Color(0.08, 0.08, 0.09, 0.85)
+	ui_layer.add_child(health_bar)
+
+	health_fill = ColorRect.new()
+	health_fill.position = Vector2(27, 25)
+	health_fill.size = Vector2(254, 12)
+	health_fill.color = Color(0.22, 0.95, 0.46, 0.95)
+	ui_layer.add_child(health_fill)
 
 	hud = Label.new()
-	hud.position = Vector2(-610, -340)
+	hud.position = Vector2(24, 48)
 	hud.add_theme_font_size_override("font_size", 18)
-	add_child(hud)
+	hud.add_theme_color_override("font_color", Color(0.92, 0.98, 1.0))
+	ui_layer.add_child(hud)
 
 	upgrade_label = Label.new()
-	upgrade_label.position = Vector2(-390, 245)
+	upgrade_label.position = Vector2(330, 620)
 	upgrade_label.add_theme_font_size_override("font_size", 20)
+	upgrade_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.45))
 	upgrade_label.visible = false
-	add_child(upgrade_label)
+	ui_layer.add_child(upgrade_label)
 
 	music_player = _audio("res://assets/music_loop.wav", -16.0)
 	shot_player = _audio("res://assets/shot.wav", -8.0)
@@ -160,9 +225,78 @@ func _build_scene() -> void:
 func _audio(path: String, volume_db: float) -> AudioStreamPlayer:
 	var player_node := AudioStreamPlayer.new()
 	player_node.stream = load(path)
+	if player_node.stream is AudioStreamWAV and path.ends_with("music_loop.wav"):
+		player_node.stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	player_node.volume_db = volume_db
 	add_child(player_node)
 	return player_node
+
+func _build_arena_ring() -> void:
+	var ring := Line2D.new()
+	ring.name = "ArenaBoundaryRing"
+	ring.width = 5.0
+	ring.default_color = Color(0.28, 0.95, 1.0, 0.62)
+	var points := PackedVector2Array()
+	for i in range(97):
+		var a := TAU * float(i) / 96.0
+		points.append(Vector2(cos(a), sin(a)) * ARENA_RADIUS)
+	ring.points = points
+	world_root.add_child(ring)
+
+func _build_player_visual() -> Node2D:
+	var root := Node2D.new()
+	root.name = "PlayerResearcher"
+	var glow := Polygon2D.new()
+	glow.polygon = PackedVector2Array([Vector2(-28, -20), Vector2(28, -20), Vector2(34, 20), Vector2(0, 34), Vector2(-34, 20)])
+	glow.color = Color(0.08, 0.95, 1.0, 0.24)
+	root.add_child(glow)
+	var body := Sprite2D.new()
+	body.name = "PlayerBodySprite"
+	body.texture = load("res://assets/player.png")
+	body.scale = Vector2(1.55, 1.55)
+	root.add_child(body)
+	var visor := ColorRect.new()
+	visor.name = "PlayerVisor"
+	visor.position = Vector2(-14, -8)
+	visor.size = Vector2(28, 8)
+	visor.color = Color(0.02, 0.2, 0.28, 0.95)
+	root.add_child(visor)
+	weapon_orbit = Node2D.new()
+	weapon_orbit.name = "weapon_orbit"
+	root.add_child(weapon_orbit)
+	var barrel := Line2D.new()
+	barrel.name = "VisibleAutoWeaponBarrel"
+	barrel.width = 8.0
+	barrel.default_color = Color(0.55, 1.0, 0.62)
+	barrel.points = PackedVector2Array([Vector2(18, 0), Vector2(48, 0)])
+	weapon_orbit.add_child(barrel)
+	return root
+
+func _build_enemy_visual(kind: String) -> Node2D:
+	var root := Node2D.new()
+	root.name = "Enemy_%s" % kind
+	var body := Sprite2D.new()
+	body.texture = load("res://assets/enemy_heavy.png" if kind == "heavy" else "res://assets/enemy_chaser.png")
+	body.scale = Vector2(1.35, 1.35) if kind == "heavy" else Vector2(1.2, 1.2)
+	root.add_child(body)
+	var face := ColorRect.new()
+	face.position = Vector2(-10, -8)
+	face.size = Vector2(20, 7)
+	face.color = Color(0.06, 0.0, 0.02, 0.9)
+	root.add_child(face)
+	var hp_back := ColorRect.new()
+	hp_back.name = "EnemyHealthBack"
+	hp_back.position = Vector2(-24, -34)
+	hp_back.size = Vector2(48, 5)
+	hp_back.color = Color(0.05, 0.02, 0.02, 0.9)
+	root.add_child(hp_back)
+	var hp_fill := ColorRect.new()
+	hp_fill.name = "EnemyHealthFill"
+	hp_fill.position = Vector2(-23, -33)
+	hp_fill.size = Vector2(46, 3)
+	hp_fill.color = Color(1.0, 0.22, 0.18, 0.95)
+	root.add_child(hp_fill)
+	return root
 
 func _handle_movement(delta: float) -> void:
 	var direction := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -173,6 +307,12 @@ func _handle_movement(delta: float) -> void:
 	if player["pos"].length() > ARENA_RADIUS:
 		player["pos"] = player["pos"].normalized() * ARENA_RADIUS
 	player_sprite.position = player["pos"]
+	if weapon_orbit:
+		var target := _nearest_enemy()
+		if target.size() > 0:
+			weapon_orbit.rotation = (target["pos"] - player["pos"]).angle()
+		else:
+			weapon_orbit.rotation += delta * 2.2
 
 func _bot_direction() -> Vector2:
 	var away := Vector2.ZERO
@@ -195,9 +335,8 @@ func _spawn_enemy(delta: float) -> void:
 	spawn_timer = max(0.28, 1.2 - float(wave) * 0.08)
 	var angle := rng.randf_range(0.0, TAU)
 	var kind := "heavy" if rng.randf() < min(0.15 + wave * 0.02, 0.45) else "chaser"
-	var node := Sprite2D.new()
-	node.texture = load("res://assets/enemy_heavy.png" if kind == "heavy" else "res://assets/enemy_chaser.png")
-	add_child(node)
+	var node := _build_enemy_visual(kind)
+	actor_root.add_child(node)
 	var enemy := {
 		"id": str(node.get_instance_id()),
 		"node": node,
@@ -209,6 +348,7 @@ func _spawn_enemy(delta: float) -> void:
 	}
 	enemies.append(enemy)
 	node.position = enemy["pos"]
+	_spawn_spawn_warning(enemy["pos"])
 	_log_gameplay("enemy_spawn", _enemy_payload(enemy), {"kind": kind})
 
 func _process_enemies(delta: float) -> void:
@@ -216,6 +356,7 @@ func _process_enemies(delta: float) -> void:
 		var direction: Vector2 = (player["pos"] - enemy["pos"]).normalized()
 		enemy["pos"] += direction * float(enemy["speed"]) * delta
 		enemy["node"].position = enemy["pos"]
+		_update_enemy_health_bar(enemy)
 		if enemy["pos"].distance_to(player["pos"]) < PLAYER_RADIUS + ENEMY_RADIUS and float(player["invulnerable"]) <= 0.0:
 			_take_damage(float(enemy["damage"]), enemy)
 
@@ -239,7 +380,14 @@ func _fire_at_nearest_enemy(delta: float) -> void:
 	var direction: Vector2 = (nearest["pos"] - player["pos"]).normalized()
 	var node := Sprite2D.new()
 	node.texture = load("res://assets/bullet.png")
-	add_child(node)
+	node.scale = Vector2(1.45, 1.45)
+	bullet_root.add_child(node)
+	var trail := Line2D.new()
+	trail.name = "BulletTrail"
+	trail.width = 3.0
+	trail.default_color = Color(0.55, 1.0, 0.62, 0.78)
+	trail.points = PackedVector2Array([Vector2.ZERO, -direction * 26.0])
+	node.add_child(trail)
 	var bullet := {
 		"node": node,
 		"pos": player["pos"],
@@ -249,6 +397,7 @@ func _fire_at_nearest_enemy(delta: float) -> void:
 	}
 	bullets.append(bullet)
 	node.position = bullet["pos"]
+	_spawn_muzzle_flash(player["pos"] + direction * 46.0, direction)
 	if not validation_mode:
 		shot_player.play()
 	_log_gameplay("weapon_fired", {}, {"target_enemy_id": nearest.get("id", "")})
@@ -263,6 +412,8 @@ func _process_bullets(delta: float) -> void:
 		if hit_enemy.size() > 0:
 			hit_enemy["health"] = float(hit_enemy["health"]) - float(bullet["damage"])
 			_log_gameplay("projectile_hit", _enemy_payload(hit_enemy), {"damage": bullet["damage"]})
+			_spawn_impact_effect(bullet["pos"])
+			_spawn_floating_text("-%d" % int(bullet["damage"]), bullet["pos"], Color(1.0, 0.42, 0.2))
 			if not validation_mode:
 				hit_player.play()
 			bullet["node"].queue_free()
@@ -291,7 +442,8 @@ func _kill_enemy(enemy: Dictionary) -> void:
 func _spawn_pickup(pos: Vector2) -> void:
 	var node := Sprite2D.new()
 	node.texture = load("res://assets/pickup_energy.png")
-	add_child(node)
+	node.scale = Vector2(1.35, 1.35)
+	pickup_root.add_child(node)
 	var pickup := {
 		"id": str(node.get_instance_id()),
 		"node": node,
@@ -315,6 +467,8 @@ func _collect_pickup(pickup: Dictionary) -> void:
 	score += 5
 	if not validation_mode:
 		pickup_player.play()
+	_spawn_pickup_effect(pickup["pos"])
+	_spawn_floating_text("+ENERGY", pickup["pos"] + Vector2(0, -18), Color(1.0, 0.9, 0.25))
 	_log_gameplay("pickup_collected", _pickup_payload(pickup), {"energy": energy, "score": score})
 	_log_feedback("feedback_positive", {"reason": "pickup_collected"})
 	if reward_probe_active:
@@ -328,6 +482,8 @@ func _take_damage(amount: float, enemy: Dictionary) -> void:
 	player["invulnerable"] = 0.55
 	if not validation_mode:
 		damage_player.play()
+	_flash_player_damage()
+	camera_shake = max(camera_shake, 0.22)
 	_log_gameplay("damage_taken", _enemy_payload(enemy), {"amount": amount, "health": player["health"]})
 	_log_feedback("feedback_negative", {"reason": "damage_taken", "health": player["health"]})
 	if near_probe_active:
@@ -376,7 +532,117 @@ func _apply_upgrade(index: int) -> void:
 	upgrade_label.visible = false
 	_log_gameplay("upgrade_selected", {}, {"upgrade": option})
 	_log_feedback("feedback_positive", {"reason": "upgrade_selected", "upgrade": option})
+	_spawn_floating_text("UPGRADE: %s" % String(option.get("id", "")), player["pos"] + Vector2(-70, -60), Color(1.0, 0.92, 0.32))
 	telemetry.close_probe("selected", _game_payload(), _player_payload(), {"upgrade": option})
+
+func _spawn_muzzle_flash(pos: Vector2, direction: Vector2) -> void:
+	var flash := Line2D.new()
+	flash.name = "MuzzleFlash"
+	flash.width = 7.0
+	flash.default_color = Color(0.7, 1.0, 0.55, 0.95)
+	flash.points = PackedVector2Array([Vector2.ZERO, direction.normalized() * 34.0])
+	flash.position = pos
+	effect_root.add_child(flash)
+	_track_effect(flash, 0.10)
+
+func _spawn_impact_effect(pos: Vector2) -> void:
+	var burst := Node2D.new()
+	burst.name = "ImpactBurst"
+	burst.position = pos
+	for i in range(8):
+		var ray := Line2D.new()
+		ray.width = 3.0
+		ray.default_color = Color(1.0, 0.38, 0.18, 0.85)
+		var a := TAU * float(i) / 8.0
+		ray.points = PackedVector2Array([Vector2.ZERO, Vector2(cos(a), sin(a)) * 24.0])
+		burst.add_child(ray)
+	effect_root.add_child(burst)
+	_track_effect(burst, 0.22)
+
+func _spawn_pickup_effect(pos: Vector2) -> void:
+	var sparkle := Line2D.new()
+	sparkle.name = "PickupSparkle"
+	sparkle.width = 4.0
+	sparkle.default_color = Color(1.0, 0.9, 0.25, 0.9)
+	sparkle.points = PackedVector2Array([Vector2(-18, 0), Vector2(18, 0), Vector2.ZERO, Vector2(0, -18), Vector2(0, 18)])
+	sparkle.position = pos
+	effect_root.add_child(sparkle)
+	_track_effect(sparkle, 0.30)
+
+func _spawn_spawn_warning(pos: Vector2) -> void:
+	var warning := Line2D.new()
+	warning.name = "EnemySpawnWarning"
+	warning.width = 4.0
+	warning.default_color = Color(1.0, 0.18, 0.18, 0.65)
+	var points := PackedVector2Array()
+	for i in range(33):
+		var a := TAU * float(i) / 32.0
+		points.append(Vector2(cos(a), sin(a)) * 28.0)
+	warning.points = points
+	warning.position = pos
+	effect_root.add_child(warning)
+	_track_effect(warning, 0.45)
+
+func _spawn_floating_text(text: String, pos: Vector2, color: Color) -> void:
+	var label := Label.new()
+	label.name = "FloatingText"
+	label.text = text
+	label.position = pos
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", color)
+	effect_root.add_child(label)
+	_track_effect(label, 0.70, Vector2(0, -42))
+
+func _flash_player_damage() -> void:
+	if player_sprite:
+		player_sprite.modulate = Color(1.0, 0.18, 0.12)
+	_spawn_floating_text("HIT", player["pos"] + Vector2(-18, -48), Color(1.0, 0.22, 0.18))
+
+func _update_enemy_health_bar(enemy: Dictionary) -> void:
+	var node: Node = enemy.get("node", null)
+	if node == null:
+		return
+	var fill := node.get_node_or_null("EnemyHealthFill")
+	if fill is ColorRect:
+		var max_health := 70.0 if enemy.get("kind", "") == "heavy" else 36.0
+		fill.size.x = 46.0 * clamp(float(enemy.get("health", 0.0)) / max_health, 0.0, 1.0)
+
+func _track_effect(node: CanvasItem, ttl: float, velocity: Vector2 = Vector2.ZERO) -> void:
+	visual_effect_count += 1
+	visual_effects.append({"node": node, "ttl": ttl, "age": 0.0, "velocity": velocity})
+
+func _update_effects(delta: float) -> void:
+	var remaining: Array[Dictionary] = []
+	for effect in visual_effects:
+		var node: CanvasItem = effect.get("node", null)
+		if node == null or not is_instance_valid(node):
+			continue
+		effect["age"] = float(effect.get("age", 0.0)) + delta
+		var ttl := float(effect.get("ttl", 0.1))
+		var velocity: Vector2 = effect.get("velocity", Vector2.ZERO)
+		if node is Node2D:
+			node.position += velocity * delta
+		elif node is Control:
+			node.position += velocity * delta
+		node.modulate.a = max(0.0, 1.0 - float(effect["age"]) / ttl)
+		if float(effect["age"]) >= ttl:
+			node.queue_free()
+		else:
+			remaining.append(effect)
+	visual_effects = remaining
+
+func _update_camera(delta: float) -> void:
+	if camera == null:
+		return
+	if camera_shake > 0.0:
+		camera_shake = max(0.0, camera_shake - delta)
+		camera.offset = Vector2(rng.randf_range(-8.0, 8.0), rng.randf_range(-8.0, 8.0)) * (camera_shake / 0.22)
+	else:
+		camera.offset = Vector2.ZERO
+
+func _update_visual_validation() -> void:
+	if validation_mode and int(run_time) == 3:
+		pass
 
 func _update_wave() -> void:
 	wave = int(run_time / 18.0) + 1
@@ -436,7 +702,6 @@ func _end_session(reason: String) -> void:
 	for audio_node in [music_player, shot_player, hit_player, pickup_player, damage_player, upgrade_player]:
 		if audio_node:
 			audio_node.stop()
-			audio_node.stream = null
 	_clear_objects()
 
 func _log_gameplay(event_tag: String, subject: Dictionary = {}, metadata: Dictionary = {}) -> void:
@@ -454,7 +719,8 @@ func _frame_sample_payload() -> Dictionary:
 		"arena": {
 			"enemy_count": enemies.size(),
 			"pickup_count": pickups.size(),
-			"nearest_enemy_distance": _nearest_enemy_distance()
+			"nearest_enemy_distance": _nearest_enemy_distance(),
+			"visual_effect_count": visual_effect_count
 		}
 	}
 
@@ -466,7 +732,12 @@ func _game_payload() -> Dictionary:
 		"wave": wave,
 		"run_time": run_time,
 		"enemy_count": enemies.size(),
-		"pickup_count": pickups.size()
+		"pickup_count": pickups.size(),
+		"visual_validation": {
+			"visible_player": player_sprite != null and is_instance_valid(player_sprite),
+			"visible_enemy_count": enemies.size(),
+			"visual_effect_count": visual_effect_count
+		}
 	}
 
 func _player_payload() -> Dictionary:
@@ -502,6 +773,8 @@ func _pickup_payload(pickup: Dictionary) -> Dictionary:
 	}
 
 func _update_hud() -> void:
+	if health_fill:
+		health_fill.size.x = 254.0 * clamp(float(player["health"]) / float(player["max_health"]), 0.0, 1.0)
 	hud.text = "HP %d/%d  Wave %d  Time %05.1f  Score %d  Energy %d  Enemies %d\nMove: WASD/Arrows    Auto-fire    Upgrades: 1/2/3" % [
 		int(player["health"]), int(player["max_health"]), wave, run_time, score, energy, enemies.size()
 	]
@@ -514,6 +787,11 @@ func _clear_objects() -> void:
 	enemies.clear()
 	bullets.clear()
 	pickups.clear()
+	for effect in visual_effects:
+		var node = effect.get("node", null)
+		if node != null and is_instance_valid(node):
+			node.free()
+	visual_effects.clear()
 
 func _exit_tree() -> void:
 	_end_session("tree_exit")
