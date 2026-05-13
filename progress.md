@@ -3,6 +3,15 @@
 ## Last Iteration
 
 Date: 2026-05-13
+Task: Standalone arena survivor PsyGodot demo
+Commit: pending
+Files changed: new `godot_project_arena_survivor/`, generated assets/audio, arena telemetry, validation scene, arena analysis scripts, tests, Superpowers spec/plan
+Tests run: Python unittest discovery, Godot project load, Godot main scene `--arena-verify`, Godot validation scene, arena JSONL validator, arena metric extraction, arena validation summary
+Result: Built and verified a separate top-down arena survivor project to validate PsyGodot with raw input, frame samples, semantic events, probes, markers, JSONL validation, and recomputable arena metrics.
+
+## Previous Iteration
+
+Date: 2026-05-13
 Task: PsyGodot precision telemetry upgrade
 Commit: pending
 Files changed: PsychRuntime/PsychClock, event tags, runner frame sampler, runner metrics, docs, precision telemetry tests

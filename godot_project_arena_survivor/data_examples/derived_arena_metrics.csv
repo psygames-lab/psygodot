@@ -1,0 +1,14 @@
+session_id,metric_name,value
+S_20260513_140324_5388,total_run_time_ms,29977.117
+S_20260513_140324_5388,survival_time_ms,29977.117
+S_20260513_140324_5388,frame_sample_count,1800.0
+S_20260513_140324_5388,mean_speed,229.872221
+S_20260513_140324_5388,mean_nearest_enemy_distance,300.249388
+S_20260513_140324_5388,damage_count,0.0
+S_20260513_140324_5388,enemy_kill_count,27.0
+S_20260513_140324_5388,pickup_collection_rate,0.925926
+S_20260513_140324_5388,weapon_fire_rate_per_min,162.123663
+S_20260513_140324_5388,projectile_hit_rate,0.839506
+S_20260513_140324_5388,upgrade_choice_count,2.0
+S_20260513_140324_5388,threat_probe_hit_rate,0.0
+S_20260513_140324_5388,reward_approach_rate,0.925926

@@ -1,0 +1,23 @@
+; Engine configuration file.
+
+config_version=5
+
+[application]
+
+config/name="PsyGodot Arena Survivor"
+run/main_scene="res://scenes/ArenaSurvivorGame.tscn"
+config/features=PackedStringArray("4.6")
+
+[autoload]
+
+PsychRuntime="*res://addons/psych_instrumentation/psych_runtime.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
