@@ -10,6 +10,7 @@ func start_session(config: Dictionary) -> Dictionary:
 		"study_id": config.get("study_id", "godot_psych_pilot"),
 		"session_id": "S_%s_%s" % [timestamp, random_suffix],
 		"participant_id_hash": config.get("participant_id_hash", "p_demo"),
+		"participant_label": config.get("participant_label", "Player"),
 		"build_version": config.get("build_version", "0.1.0-dev"),
 		"platform": OS.get_name().to_lower(),
 		"random_seed": config.get("random_seed", 12052026)

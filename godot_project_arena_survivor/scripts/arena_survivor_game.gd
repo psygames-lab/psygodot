@@ -54,6 +54,10 @@ var player_sprite: Node2D
 var weapon_orbit: Node2D
 var hud: Label
 var upgrade_label: Label
+var start_overlay: Control
+var player_name_edit: LineEdit
+var start_message: Label
+var output_label: Label
 var health_bar: ColorRect
 var health_fill: ColorRect
 var floor_sprite: Sprite2D
@@ -65,15 +69,33 @@ var reward_probe_active := false
 var pressure_probe_active := false
 var last_wave_logged := 0
 var session_closed := false
+var game_started := false
+var player_name := "Player"
+var summary_output_path := ""
+var csv_output_path := ""
+var enemy_kills := 0
+var shots_fired := 0
+var projectile_hits := 0
+var pickups_collected := 0
+var damage_taken_count := 0
+var upgrade_count := 0
 
 func _ready() -> void:
 	screenshot_mode = _is_screenshot_run()
 	validation_mode = _is_validation_run()
 	_ensure_input_actions()
 	_build_scene()
-	_start_run()
+	if validation_mode:
+		_start_session_for_player("validation_bot")
+	elif screenshot_mode:
+		_start_session_for_player("screenshot_player")
+	else:
+		_show_start_screen()
 
 func _process(delta: float) -> void:
+	if not game_started:
+		return
+
 	run_time += delta
 	if validation_mode:
 		validation_elapsed += delta
@@ -119,7 +141,8 @@ func _process(delta: float) -> void:
 		if validation_mode:
 			get_tree().quit(1)
 		else:
-			_start_run()
+			game_started = false
+			_show_start_screen("Run complete. Press Enter or Start to play again.")
 
 func _start_run() -> void:
 	rng.seed = 778899
@@ -127,11 +150,20 @@ func _start_run() -> void:
 	energy = 0
 	wave = 1
 	run_time = 0.0
+	validation_elapsed = 0.0
 	fire_timer = 0.1
 	spawn_timer = 0.2
 	upgrade_timer = 10.0
 	upgrade_pending = false
 	session_closed = false
+	summary_output_path = ""
+	csv_output_path = ""
+	enemy_kills = 0
+	shots_fired = 0
+	projectile_hits = 0
+	pickups_collected = 0
+	damage_taken_count = 0
+	upgrade_count = 0
 	near_probe_active = false
 	reward_probe_active = false
 	pressure_probe_active = false
@@ -225,6 +257,14 @@ func _build_scene() -> void:
 	upgrade_label.visible = false
 	ui_layer.add_child(upgrade_label)
 
+	output_label = Label.new()
+	output_label.position = Vector2(24, 650)
+	output_label.add_theme_font_size_override("font_size", 14)
+	output_label.add_theme_color_override("font_color", Color(0.78, 0.92, 1.0))
+	ui_layer.add_child(output_label)
+
+	_build_start_overlay()
+
 	music_player = _audio("res://assets/music_loop.wav", -16.0)
 	shot_player = _audio("res://assets/shot.wav", -8.0)
 	hit_player = _audio("res://assets/hit.wav", -6.0)
@@ -240,6 +280,119 @@ func _audio(path: String, volume_db: float) -> AudioStreamPlayer:
 	player_node.volume_db = volume_db
 	add_child(player_node)
 	return player_node
+
+func _build_start_overlay() -> void:
+	start_overlay = Control.new()
+	start_overlay.name = "PlayerSessionStartOverlay"
+	start_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ui_layer.add_child(start_overlay)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.03, 0.04, 0.78)
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	start_overlay.add_child(shade)
+
+	var panel := PanelContainer.new()
+	panel.position = Vector2(380, 205)
+	panel.size = Vector2(520, 310)
+	start_overlay.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 26)
+	margin.add_theme_constant_override("margin_right", 26)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
+	panel.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	margin.add_child(box)
+
+	var title := Label.new()
+	title.text = "PsyGodot Arena Survivor"
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color(0.92, 0.98, 1.0))
+	box.add_child(title)
+
+	start_message = Label.new()
+	start_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	start_message.text = "Enter player name before starting. Your raw events, readable summary, and CSV will be saved after the run."
+	start_message.add_theme_font_size_override("font_size", 15)
+	start_message.add_theme_color_override("font_color", Color(0.80, 0.90, 0.95))
+	box.add_child(start_message)
+
+	player_name_edit = LineEdit.new()
+	player_name_edit.placeholder_text = "Player name"
+	player_name_edit.text = player_name
+	player_name_edit.max_length = 32
+	player_name_edit.text_submitted.connect(_on_player_name_submitted)
+	box.add_child(player_name_edit)
+
+	var start_button := Button.new()
+	start_button.text = "Start Run"
+	start_button.pressed.connect(_on_start_button_pressed)
+	box.add_child(start_button)
+
+	var controls := Label.new()
+	controls.text = "Move: WASD or arrow keys    Weapon: auto-fire    Upgrades: 1 / 2 / 3"
+	controls.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	controls.add_theme_font_size_override("font_size", 14)
+	controls.add_theme_color_override("font_color", Color(0.72, 0.82, 0.88))
+	box.add_child(controls)
+
+	start_overlay.visible = false
+
+func _show_start_screen(message: String = "") -> void:
+	if start_overlay == null:
+		return
+	start_overlay.visible = true
+	if message != "":
+		start_message.text = "%s\n\nLast output:\n%s\n%s" % [
+			message,
+			ProjectSettings.globalize_path(summary_output_path) if summary_output_path != "" else "No summary yet.",
+			ProjectSettings.globalize_path(csv_output_path) if csv_output_path != "" else ""
+		]
+	else:
+		start_message.text = "Enter player name before starting. Your raw events, readable summary, and CSV will be saved after the run."
+	player_name_edit.text = player_name
+	player_name_edit.grab_focus()
+	hud.text = "Enter player name and start. Move with WASD/arrows after the run begins."
+
+func _on_player_name_submitted(_submitted_text: String) -> void:
+	_start_session_for_player(player_name_edit.text)
+
+func _on_start_button_pressed() -> void:
+	_start_session_for_player(player_name_edit.text)
+
+func _start_session_for_player(raw_player_name: String = "") -> void:
+	player_name = _sanitize_player_name(raw_player_name)
+	if player_name_edit:
+		player_name_edit.text = player_name
+	if start_overlay:
+		start_overlay.visible = false
+	game_started = true
+	_start_run()
+
+func _sanitize_player_name(raw_player_name: String) -> String:
+	var cleaned := raw_player_name.strip_edges()
+	cleaned = cleaned.replace("\n", " ").replace("\r", " ").strip_edges()
+	if cleaned == "":
+		cleaned = "Player"
+	if cleaned.length() > 32:
+		cleaned = cleaned.substr(0, 32)
+	return cleaned
+
+func _participant_hash(label: String) -> String:
+	var safe := ""
+	for i in range(label.length()):
+		var ch := label.substr(i, 1).to_lower()
+		if "abcdefghijklmnopqrstuvwxyz0123456789_-".contains(ch):
+			safe += ch
+		elif ch == " ":
+			safe += "_"
+	if safe == "":
+		safe = "player"
+	return "p_%s_%s" % [safe, str(abs(label.hash()))]
 
 func _build_arena_ring() -> void:
 	var ring := Line2D.new()
@@ -411,6 +564,7 @@ func _fire_at_nearest_enemy(delta: float) -> void:
 	_spawn_muzzle_flash(player["pos"] + direction * 46.0, direction)
 	if not validation_mode:
 		shot_player.play()
+	shots_fired += 1
 	_log_gameplay("weapon_fired", {}, {"target_enemy_id": nearest.get("id", "")})
 
 func _process_bullets(delta: float) -> void:
@@ -422,6 +576,7 @@ func _process_bullets(delta: float) -> void:
 		var hit_enemy := _enemy_hit_by_bullet(bullet)
 		if hit_enemy.size() > 0:
 			hit_enemy["health"] = float(hit_enemy["health"]) - float(bullet["damage"])
+			projectile_hits += 1
 			_log_gameplay("projectile_hit", _enemy_payload(hit_enemy), {"damage": bullet["damage"]})
 			_spawn_impact_effect(bullet["pos"])
 			_spawn_floating_text("-%d" % int(bullet["damage"]), bullet["pos"], Color(1.0, 0.42, 0.2))
@@ -444,6 +599,7 @@ func _enemy_hit_by_bullet(bullet: Dictionary) -> Dictionary:
 
 func _kill_enemy(enemy: Dictionary) -> void:
 	score += 25 if enemy["kind"] == "heavy" else 12
+	enemy_kills += 1
 	_log_gameplay("enemy_killed", _enemy_payload(enemy), {"score": score})
 	_log_feedback("feedback_positive", {"reason": "enemy_killed", "score": score})
 	_spawn_pickup(enemy["pos"])
@@ -476,6 +632,7 @@ func _process_pickups() -> void:
 func _collect_pickup(pickup: Dictionary) -> void:
 	energy += 1
 	score += 5
+	pickups_collected += 1
 	if not validation_mode:
 		pickup_player.play()
 	_spawn_pickup_effect(pickup["pos"])
@@ -491,6 +648,7 @@ func _collect_pickup(pickup: Dictionary) -> void:
 func _take_damage(amount: float, enemy: Dictionary) -> void:
 	player["health"] = max(0.0, float(player["health"]) - amount)
 	player["invulnerable"] = 0.55
+	damage_taken_count += 1
 	if not validation_mode:
 		damage_player.play()
 	_flash_player_damage()
@@ -540,6 +698,7 @@ func _apply_upgrade(index: int) -> void:
 	player["damage"] = float(player["damage"]) + float(option.get("damage", 0.0))
 	upgrade_pending = false
 	upgrade_timer = 12.0
+	upgrade_count += 1
 	upgrade_label.visible = false
 	_log_gameplay("upgrade_selected", {}, {"upgrade": option})
 	_log_feedback("feedback_positive", {"reason": "upgrade_selected", "upgrade": option})
@@ -712,9 +871,13 @@ func _setup_telemetry() -> void:
 	telemetry = TelemetryScript.new()
 	add_child(telemetry)
 	telemetry.start_session({
+		"participant_label": player_name,
+		"participant_id_hash": _participant_hash(player_name),
 		"random_seed": rng.seed,
 		"validation_mode": validation_mode
 	}, Callable(self, "_frame_sample_payload"))
+	if output_label:
+		output_label.text = "Saving: %s" % ProjectSettings.globalize_path(telemetry.get_raw_events_path())
 
 func _end_session(reason: String) -> void:
 	if session_closed:
@@ -722,10 +885,119 @@ func _end_session(reason: String) -> void:
 	session_closed = true
 	if telemetry:
 		telemetry.end_session(reason, _game_payload(), _player_payload())
+		telemetry.flush()
+		_write_human_summary(reason)
+		print("PSYGODOT_ARENA_OUTPUT raw=%s summary=%s csv=%s" % [
+			ProjectSettings.globalize_path(telemetry.get_raw_events_path()),
+			ProjectSettings.globalize_path(summary_output_path),
+			ProjectSettings.globalize_path(csv_output_path)
+		])
+		telemetry.queue_free()
+		telemetry = null
 	for audio_node in [music_player, shot_player, hit_player, pickup_player, damage_player, upgrade_player]:
 		if audio_node:
 			audio_node.stop()
 	_clear_objects()
+
+func _write_human_summary(reason: String) -> void:
+	if telemetry == null:
+		return
+	var raw_path: String = telemetry.get_raw_events_path()
+	if raw_path == "":
+		return
+	var output_dir: String = raw_path.get_base_dir()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(output_dir))
+	summary_output_path = raw_path.replace("_raw_events.jsonl", "_summary.md")
+	csv_output_path = raw_path.replace("_raw_events.jsonl", "_summary.csv")
+	var latest_summary: String = output_dir.path_join("latest_arena_session_summary.md")
+	var latest_csv: String = output_dir.path_join("latest_arena_session_summary.csv")
+	var markdown := _human_summary_markdown(reason, raw_path)
+	_store_text(summary_output_path, markdown)
+	_store_text(latest_summary, markdown)
+	_write_summary_csv(reason, raw_path, [csv_output_path, latest_csv])
+	if output_label:
+		output_label.text = "Saved summary: %s\nSaved CSV: %s" % [
+			ProjectSettings.globalize_path(summary_output_path),
+			ProjectSettings.globalize_path(csv_output_path)
+		]
+
+func _human_summary_markdown(reason: String, raw_path: String) -> String:
+	var context: Dictionary = telemetry.get_session_context() if telemetry else {}
+	var session_id := String(context.get("session_id", "unknown_session"))
+	var hit_rate: float = float(projectile_hits) / max(1.0, float(shots_fired))
+	var lines := PackedStringArray([
+		"# PsyGodot Arena Survivor Session",
+		"",
+		"- Player name: %s" % player_name,
+		"- Session ID: %s" % session_id,
+		"- End reason: %s" % reason,
+		"- Survival time: %.2f s" % run_time,
+		"- Score: %d" % score,
+		"- Wave: %d" % wave,
+		"- Energy: %d" % energy,
+		"",
+		"## Gameplay Summary",
+		"",
+		"- Enemy kills: %d" % enemy_kills,
+		"- Shots fired: %d" % shots_fired,
+		"- Projectile hits: %d" % projectile_hits,
+		"- Projectile hit rate: %.3f" % hit_rate,
+		"- Pickups collected: %d" % pickups_collected,
+		"- Damage events: %d" % damage_taken_count,
+		"- Upgrades selected: %d" % upgrade_count,
+		"",
+		"## PsyGodot Data",
+		"",
+		"- Raw JSONL events: %s" % ProjectSettings.globalize_path(raw_path),
+		"- Session manifest: %s" % ProjectSettings.globalize_path(raw_path.replace("_raw_events.jsonl", "_session_manifest.json")),
+		"",
+		"The JSONL file remains the recomputable raw record. This Markdown and CSV are synchronized player-facing summaries."
+	])
+	return "\n".join(lines) + "\n"
+
+func _write_summary_csv(reason: String, raw_path: String, paths: Array[String]) -> void:
+	var csv := _summary_csv_text(reason, raw_path)
+	for path in paths:
+		_store_text(path, csv)
+
+func _summary_csv_text(reason: String, raw_path: String) -> String:
+	var hit_rate: float = float(projectile_hits) / max(1.0, float(shots_fired))
+	var rows: Array[Array] = [
+		["metric", "value"],
+		["player_name", player_name],
+		["session_id", telemetry.get_session_context().get("session_id", "unknown_session") if telemetry else "unknown_session"],
+		["end_reason", reason],
+		["survival_time_s", "%.3f" % run_time],
+		["score", score],
+		["wave", wave],
+		["energy", energy],
+		["enemy_kills", enemy_kills],
+		["shots_fired", shots_fired],
+		["projectile_hits", projectile_hits],
+		["projectile_hit_rate", "%.6f" % hit_rate],
+		["pickups_collected", pickups_collected],
+		["damage_events", damage_taken_count],
+		["upgrades_selected", upgrade_count],
+		["raw_events_path", ProjectSettings.globalize_path(raw_path)]
+	]
+	var lines := PackedStringArray()
+	for row in rows:
+		lines.append("%s,%s" % [_csv_cell(str(row[0])), _csv_cell(str(row[1]))])
+	return "\n".join(lines) + "\n"
+
+func _csv_cell(value: String) -> String:
+	var escaped := value.replace("\"", "\"\"")
+	if escaped.contains(",") or escaped.contains("\"") or escaped.contains("\n"):
+		return "\"%s\"" % escaped
+	return escaped
+
+func _store_text(path: String, text: String) -> void:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		push_error("Unable to write PsyGodot summary output: %s" % path)
+		return
+	file.store_string(text)
+	file.flush()
 
 func _log_gameplay(event_tag: String, subject: Dictionary = {}, metadata: Dictionary = {}) -> void:
 	if telemetry:

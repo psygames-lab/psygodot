@@ -20,6 +20,9 @@ Controls:
 - Weapon: automatic nearest-enemy firing
 - Upgrade choice: `1`, `2`, or `3`
 
+When the game opens, enter a player name and press Enter or `Start Run`.
+That name is saved in the session manifest and in the player-facing summary files.
+
 ## Game Loop
 
 The player controls a robot researcher in a lab arena. Enemies spawn in waves, the weapon fires automatically, defeated enemies drop energy pickups, and periodic upgrades alter speed, fire rate, or damage. The run ends when health reaches zero, while validation mode exits after a fixed 30-second run.
@@ -75,6 +78,20 @@ Expected success line:
 `PSYGODOT_ARENA_SURVIVOR_OK`
 
 ## Data Outputs
+
+Manual play writes outputs under Godot's user-data folder:
+
+`C:\Users\frued\AppData\Roaming\Godot\app_userdata\PsyGodot Arena Survivor\psygodot_data\`
+
+Each completed run writes:
+
+- `<session_id>_raw_events.jsonl`: recomputable raw PsyGodot event stream
+- `<session_id>_session_manifest.json`: session metadata, including player name
+- `<session_id>_summary.md`: human-readable run summary
+- `<session_id>_summary.csv`: spreadsheet-friendly run summary
+- `latest_arena_session_summary.md` and `.csv`: convenience copies for the newest run
+
+The game also prints a `PSYGODOT_ARENA_OUTPUT raw=... summary=... csv=...` line when a run ends.
 
 Example outputs live in `data_examples/`:
 

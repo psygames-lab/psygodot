@@ -115,6 +115,37 @@ class ArenaSurvivorStaticTests(unittest.TestCase):
         for token in required_tokens:
             self.assertIn(token, source)
 
+    def test_manual_session_has_player_name_and_friendly_outputs(self):
+        game_source = (PROJECT / "scripts" / "arena_survivor_game.gd").read_text(encoding="utf-8")
+        telemetry_source = (PROJECT / "scripts" / "arena_telemetry.gd").read_text(encoding="utf-8")
+        session_source = (
+            PROJECT / "addons" / "psych_instrumentation" / "session_manager.gd"
+        ).read_text(encoding="utf-8")
+
+        game_tokens = [
+            "LineEdit.new()",
+            "_start_session_for_player",
+            "player_name",
+            "_write_human_summary",
+            "_write_summary_csv",
+            "latest_arena_session_summary.md",
+            "latest_arena_session_summary.csv",
+            "PSYGODOT_ARENA_OUTPUT",
+            "summary_output_path",
+            "csv_output_path",
+        ]
+        for token in game_tokens:
+            self.assertIn(token, game_source)
+
+        telemetry_tokens = [
+            "participant_label",
+            "get_session_context",
+        ]
+        for token in telemetry_tokens:
+            self.assertIn(token, telemetry_source)
+
+        self.assertIn("participant_label", session_source)
+
 
 if __name__ == "__main__":
     unittest.main()

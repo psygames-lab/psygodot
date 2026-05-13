@@ -24,6 +24,7 @@ func start_session(config: Dictionary, sampler: Callable) -> void:
 	var merged := {
 		"study_id": "arena_survivor",
 		"participant_id_hash": "p_demo_arena",
+		"participant_label": "Player",
 		"build_version": "0.1.0-dev",
 		"capture_input": true,
 		"capture_input_actions": true,
@@ -113,6 +114,11 @@ func get_raw_events_path() -> String:
 	if runtime == null:
 		return ""
 	return runtime.logger.raw_events_path
+
+func get_session_context() -> Dictionary:
+	if runtime == null:
+		return {}
+	return runtime.session_manager.context
 
 func flush() -> void:
 	if runtime != null:
