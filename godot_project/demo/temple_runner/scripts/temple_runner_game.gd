@@ -32,6 +32,7 @@ var headless_elapsed := 0.0
 var lane_input_cooldown := 0.0
 var passed_hazards := {}
 var observed_areas := {}
+var resolved_hazards := {}
 var last_reported_speed := 15.0
 var telemetry_session_closed := false
 var active_path_choice := {}
@@ -72,6 +73,7 @@ func _process(delta: float) -> void:
 	state.advance(delta)
 	world.scroll(delta, state.speed)
 	_process_area_onsets()
+	_process_hazard_resolution()
 	_process_near_misses()
 	_process_speed_change(previous_speed)
 	if telemetry:
@@ -83,6 +85,7 @@ func _start_run() -> void:
 	headless_elapsed = 0.0
 	passed_hazards.clear()
 	observed_areas.clear()
+	resolved_hazards.clear()
 	active_path_choice.clear()
 	last_reported_speed = 15.0
 	_end_telemetry_session("restart")
@@ -210,7 +213,7 @@ func _lane_has_hazard(lane: int) -> bool:
 func _process_near_misses() -> void:
 	for hazard in world.get_active_hazards():
 		var id: int = hazard.get_instance_id()
-		if passed_hazards.has(id):
+		if passed_hazards.has(id) or resolved_hazards.has(id):
 			continue
 		var z: float = hazard.global_position.z
 		if z > 0.65:
@@ -224,6 +227,17 @@ func _process_near_misses() -> void:
 				audio.play_near_miss()
 				hud.show_flash("NEAR MISS +%d" % reward, Color(1.0, 0.85, 0.24))
 				juice.reward_pop(self, hazard.global_position, "+%d" % reward, Color(1.0, 0.85, 0.24))
+
+func _process_hazard_resolution() -> void:
+	for hazard in world.get_active_hazards():
+		var id: int = hazard.get_instance_id()
+		if resolved_hazards.has(id):
+			continue
+		var z: float = hazard.global_position.z
+		if z < -0.15:
+			continue
+		resolved_hazards[id] = true
+		_resolve_hazard(hazard)
 
 func _process_area_onsets() -> void:
 	for area in _collect_runner_areas(world):
@@ -270,21 +284,35 @@ func _on_runner_area_touched(area: Area3D) -> void:
 	if state.mode != MODE_PLAYING or not bool(area.get_meta("runner_active", true)):
 		return
 	var kind := String(area.get_meta("runner_kind", ""))
-	area.set_meta("runner_active", false)
-	if kind == "gem":
-		area.visible = false
-		var reward: int = state.collect_gem()
-		_log_gameplay("reward_collected", area, {"reward": reward})
-		_log_feedback("feedback_positive", area, {"reason": "reward_collected", "reward": reward})
-		audio.play_gem()
-		hud.show_flash("+%d GEM" % reward, Color(0.98, 0.72, 0.18))
-		juice.reward_pop(self, area.global_position, "+%d" % reward, Color(0.98, 0.72, 0.18))
+	if kind != "gem":
 		return
+	area.set_meta("runner_active", false)
+	area.visible = false
+	var reward: int = state.collect_gem()
+	_log_gameplay("reward_collected", area, {"reward": reward})
+	_log_feedback("feedback_positive", area, {"reason": "reward_collected", "reward": reward})
+	audio.play_gem()
+	hud.show_flash("+%d GEM" % reward, Color(0.98, 0.72, 0.18))
+	juice.reward_pop(self, area.global_position, "+%d" % reward, Color(0.98, 0.72, 0.18))
+
+func _resolve_hazard(area: Area3D) -> void:
+	if not bool(area.get_meta("runner_active", true)):
+		return
+	area.set_meta("runner_active", false)
+	var kind := String(area.get_meta("runner_kind", ""))
 	if _hazard_was_cleared(area):
 		var clear_reward: int = state.clear_hazard(kind)
 		_log_gameplay("successful_avoidance", area, {"reward": clear_reward})
 		_log_feedback("feedback_positive", area, {"reason": "successful_avoidance", "reward": clear_reward})
-		hud.show_flash("+%d CLEAR" % clear_reward, Color(0.55, 1.0, 0.68))
+		var hazard_lane := int(area.get_meta("runner_lane", 0))
+		if abs(hazard_lane - player.lane) == 1 and kind != "gap":
+			var near_reward: int = state.add_near_miss()
+			_log_gameplay("near_miss", area, {"reward": near_reward})
+			audio.play_near_miss()
+			hud.show_flash("NEAR MISS +%d" % near_reward, Color(1.0, 0.85, 0.24))
+			juice.reward_pop(self, area.global_position, "+%d" % near_reward, Color(1.0, 0.85, 0.24))
+		else:
+			hud.show_flash("+%d CLEAR" % clear_reward, Color(0.55, 1.0, 0.68))
 		return
 	if player.is_invulnerable():
 		return

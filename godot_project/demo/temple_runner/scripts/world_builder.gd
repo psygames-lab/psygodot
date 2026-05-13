@@ -5,7 +5,8 @@ signal runner_area_touched(area: Area3D)
 
 const DirectorScript := preload("res://demo/temple_runner/scripts/obstacle_director.gd")
 const SEGMENT_LENGTH := 13.0
-const SEGMENT_COUNT := 18
+const SEGMENT_COUNT := 22
+const RECYCLE_AFTER_SEGMENTS := 3.0
 
 var director
 var segments: Array[Node3D] = []
@@ -31,7 +32,7 @@ func scroll(delta: float, speed: float) -> void:
 		segment.position.z += speed * delta
 	var farthest_z := _farthest_segment_z()
 	for segment in segments:
-		if segment.position.z > SEGMENT_LENGTH:
+		if segment.position.z > SEGMENT_LENGTH * RECYCLE_AFTER_SEGMENTS:
 			_clear_segment(segment)
 			segment.position.z = farthest_z - SEGMENT_LENGTH
 			farthest_z = segment.position.z
