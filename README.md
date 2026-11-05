@@ -2,7 +2,7 @@
 
 PsyGodot is a general-purpose event capture framework for Godot games. Games keep their own mechanics, clocks, input handling, and judgments. A small adapter maps game signals into named events and payloads; the framework contains no game-specific rules.
 
-The current priority is low runtime overhead and reliable raw data. HED annotation and conversion are deferred to offline tooling.
+The current priority is low runtime overhead and reliable raw data. HED conversion runs only in offline Python tooling, using mapping files owned by each game or study.
 
 ## Integration
 
@@ -45,9 +45,11 @@ godot --headless --path . --script tests/runtime/test_capture.gd
 ```
 
 - `addons/psygodot/`: canonical framework source.
-- `analysis/`: offline generic validation.
+- `analysis/`: offline generic validation and HED conversion.
 - `tests/`: runtime correctness checks.
 - [Architecture](architecture.md): threading, lifecycle, and integration boundaries.
 - [Event schema](event_schema.md): version 0.2.0 records and manifest.
+- [Offline HED conversion](analysis/HED.md): mapping format, commands, and validation.
+- [EEG triggers](docs/eeg_triggers.md): proposed driver/timing mechanism; current markers are simulated only.
 
 Games are maintained as independent projects, including [GDTaiko](https://github.com/psygames-lab/GDTaiko), rather than embedded examples in this repository. Game-specific adapters and analysis belong with their game.

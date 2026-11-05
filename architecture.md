@@ -4,7 +4,7 @@
 
 The game owns input handling, timing, scoring, simulation, and presentation. Its adapter observes existing signals or explicit hooks and calls PsyGodot. The core accepts arbitrary event types, tags, and JSON-compatible payloads; it must not reference game scenes or scoring rules.
 
-PsyGodot owns session metadata, monotonic timestamps, optional episode/probe scope, event snapshots, bounded buffering, background persistence, and recording statistics. Offline Python tools validate exported data. Game metrics belong in each game repository. HED mapping and conversion will be offline work, separate from capture.
+PsyGodot owns session metadata, monotonic timestamps, optional episode/probe scope, event snapshots, bounded buffering, background persistence, and recording statistics. Offline Python tools validate exported data and convert it using game-owned HED mappings. Game metrics belong in each game repository. See [the mapping contract](analysis/HED.md); the converter has no game-specific event names or callbacks.
 
 ## Runtime path
 
@@ -40,6 +40,10 @@ If a producer buffer fills, capture returns an empty dictionary and increments a
 Frame sampling requires `register_frame_sampler(callable, interval)`; the interval is measured in physics frames. Return a small JSON-compatible dictionary. Use `unregister_frame_sampler()` to stop. Sampling and raw input should be enabled only when required by the study.
 
 Episodes and probes are optional, single active scopes. Pair their start/end calls explicitly before session closure. Markers are software links only: `log_event_with_marker` records a mock marker at the source event timestamp when its tag has a configured code.
+
+Physical EEG trigger sending is not implemented. The [trigger design](docs/eeg_triggers.md)
+separates future device transport from disk writing and distinguishes source,
+request, driver-call and EEG-observed timing. Offline HED export never sends triggers.
 
 ## Timing and integrity
 

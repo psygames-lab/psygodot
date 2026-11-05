@@ -46,4 +46,4 @@ The file stem combines a sanitized game name, start UTC time, process ID, monoto
 
 Read the manifest with its JSONL file. Verify unique IDs, source-time order, constant time origin, paired lifecycle scopes, linked marker references, and final recording counts. A valid stream alone cannot prove that events were not dropped; the final manifest is required for that check.
 
-HED mapping is deferred. Retain stable source facts and a versioned game event vocabulary so future offline conversion can derive HED annotations without adding work to gameplay capture. No HED annotation or validation runs in the game loop.
+The [offline HED converter](analysis/HED.md) reads this schema with a game-owned mapping and standard HED JSON sidecar. It retains source event IDs, derives onset from session elapsed time, and leaves game-specific clocks in separate columns. No HED annotation or validation runs in the game loop. A mock marker's source timestamp is not a physical EEG trigger time; see [EEG trigger design](docs/eeg_triggers.md).
