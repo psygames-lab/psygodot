@@ -1,47 +1,12 @@
-# Runner Analysis
+# PsyGodot analysis
 
-This directory contains runner-only Python analysis tools for PsyGodot JSONL
-exports. The scripts do not import Godot code.
-
-## Validate Runner Events
+Game-independent offline tools for schema 0.2.0. Each game repository owns its event vocabulary, scientific metrics, and game-specific analysis. HED conversion is deferred.
 
 ```powershell
-python analysis/validate_runner_events.py input.jsonl
+python analysis/validate_events.py input_raw_events.jsonl --manifest input_session_manifest.json
+python -m unittest discover -s analysis/tests -p test_validate_events.py -v
 ```
 
-Checks required JSONL fields, balanced `session_start`/`session_end`,
-`episode_start`/`episode_end`, `probe_start`/`probe_end`, marker
-`linked_event_id` references, and monotonic `timestamp_usec` values.
+The validator checks record shape, unique event IDs, monotonic source timestamps, constant session time origin, session/episode/probe lifecycle order, scope references, and mock-marker links. Custom event types and tags are accepted, and gameplay/feedback does not require an episode or probe.
 
-## Compute Runner Metrics
-
-```powershell
-python analysis/compute_runner_metrics.py input.jsonl output_dir
-```
-
-Writes:
-
-- `derived_runner_metrics.csv`
-- `runner_session_summary.csv`
-- `runner_probe_summary.csv`
-
-Computed metrics include `total_run_time_ms`, `score`, `distance_m`,
-`obstacle_response_rt_ms`, `collision_rate`, `near_miss_rate`,
-`reward_collection_rate`, `hazard_hit_rate`, `risky_path_choice_rate`,
-`post_error_slowing_ms`, `movement_entropy`, and
-`episode_survival_time_ms`.
-
-## Summarize Validation
-
-```powershell
-python analysis/summarize_runner_validation.py input.jsonl output.json
-```
-
-Writes a JSON report with event counts, probe counts, marker counts,
-validation errors, and metric ranges.
-
-## Tests
-
-```powershell
-python -m unittest discover -s analysis/tests -v
-```
+With `--manifest`, it also checks schema version, time origin, closed/complete status, accepted and written counts against the stream, zero drops, and write errors. Without the manifest, a structurally valid stream is not proof of complete capture. The command emits a JSON report and exits nonzero on invalid data.

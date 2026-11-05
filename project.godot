@@ -1,0 +1,9 @@
+; Minimal project for framework runtime tests, not a game.
+config_version=5
+
+[application]
+config/name="PsyGodot"
+config/features=PackedStringArray("4.6")
+
+[rendering]
+renderer/rendering_method="gl_compatibility"

@@ -9,6 +9,9 @@ venv/
 godot_project/user_data/
 godot_project/.godot/
 data/
+examples/*/output/
 *.translation
 *.uid
 *.import
+tmp/
+output/

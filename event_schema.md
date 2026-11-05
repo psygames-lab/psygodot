@@ -1,133 +1,49 @@
-# Event Schema
+# Event schema 0.2.0
 
-Every raw event is one JSON object per line. The active schema is runner-only and describes real temple runner gameplay events plus instrumentation lifecycle events.
+Each session has a UTF-8 JSONL stream and a JSON manifest sharing a file stem. Stable metadata lives in the manifest rather than being repeated in every event. This schema replaces the earlier format without a compatibility layer.
 
-The unified JSONL stream may contain these `event_type` values:
+## Event record
 
-- `session`
-- `episode`
-- `probe`
-- `input`
-- `frame`
-- `gameplay`
-- `feedback`
-- `marker`
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `event_id` | string | `EV_` plus a zero-padded runtime counter; unique within the runtime |
+| `event_type` | string | Adapter-defined category or built-in category |
+| `event_tag` | string | Adapter-defined event name or built-in lifecycle tag |
+| `timestamp_usec` | integer | Source monotonic Godot ticks in microseconds |
+| `session_elapsed_usec` | integer | Source timestamp minus manifest `time_origin_usec` |
+| `payload` | object | Small snapshot of event facts |
+| `episode_id` | optional string | Current episode scope |
+| `probe_id` | optional string | Current probe scope |
 
-## Required Fields
+```json
+{"event_id":"EV_00000002","event_type":"gameplay","event_tag":"response_result","timestamp_usec":1250000,"session_elapsed_usec":250000,"payload":{"object_id":"target_17","outcome":"hit","latency_ms":184.2}}
+```
 
-- `schema_version`
-- `study_id`
-- `session_id`
-- `participant_id_hash`
-- `build_version`
-- `platform`
-- `event_id`
-- `event_type`
-- `event_tag`
-- `timestamp_usec`
-- `timestamp_msec`
-- `session_elapsed_usec`
-- `session_elapsed_msec`
-- `wall_time_iso`
-- `frame`
-- `physics_frame`
+Payloads contain JSON primitives, arrays, and objects. Convert Godot vector values into numeric components. Do not submit nodes, resources, or other object references. Fields such as song position, input origin, stimulus identity, and the game's computed judgment belong in a game-defined payload.
 
-Episode-scoped gameplay events include `episode_id`.
+Event types and tags are open vocabulary. Built-in pairs are `session/session_start`, `session/session_end`, `episode/episode_start`, `episode/episode_end`, `probe/probe_start`, `probe/probe_end`, `input/input_raw`, `input/input_action`, `frame/frame_sample`, and `marker/marker_sent`. Custom gameplay and feedback events do not require an episode or probe.
 
-Probe-scoped events include `probe_id`.
+An episode/probe start carries its ID in both the scope field and payload; its end carries that ID and supplied metadata. A marker payload contains `marker: {code, label, driver, linked_event_id}`; the current driver is `mock`, and the link references an earlier accepted source event. Marker timestamps equal the source timestamp.
 
-Marker events include `marker.code`, `marker.label`, `marker.driver`, and `marker.linked_event_id`.
+Raw input payload fields are direct members: `class`, `device`, and applicable numeric key/button/axis/position fields. Action payloads use `action`, `pressed`, `released`, and `strength`. Frame sample payloads are exactly the sampler's dictionary. There is no fixed game-specific payload schema in the core.
 
-`timestamp_usec`, `timestamp_msec`, `session_elapsed_usec`, `session_elapsed_msec`, `frame`, `physics_frame`, and `wall_time_iso` are added by `PsychClock`. They provide a single software timebase for aligning raw input, frame samples, semantic gameplay events, probes, and markers. They do not by themselves validate physical display onset.
+## Session manifest
 
-## Runner Event Tags
+The manifest contains `schema_version: "0.2.0"`, `session_id`, `game_name`, `study_id`, `participant_label`, `build_version`, `platform`, `time_origin_usec`, `wall_time_iso`, `metadata`, `output_dir`, `file_stem`, `raw_events_path`, and `manifest_path`. UTC wall time is captured once at session start. No participant hash is generated.
 
-- `session_start`: run or validation session opened.
-- `session_end`: run or validation session closed.
-- `episode_start`: bounded runner segment begins.
-- `episode_end`: bounded runner segment ends.
-- `probe_start`: embedded measurement opportunity begins.
-- `probe_end`: embedded measurement opportunity closes.
-- `obstacle_onset`: obstacle enters the relevant response window.
-- `reward_onset`: collectible reward enters the relevant response window.
-- `punishment_onset`: damaging trap or gap enters the relevant response window.
-- `path_choice_onset`: safe/risky route decision becomes available.
-- `lane_change`: player changes lanes.
-- `jump_response`: player jumps.
-- `slide_response`: player slides.
-- `no_response`: no movement response occurred inside the probe window.
-- `collision`: player collides with a damaging object.
-- `near_miss`: player avoids a hazard within the configured proximity window.
-- `successful_avoidance`: player clears a hazard or trap successfully.
-- `reward_collected`: player collects a reward.
-- `punishment_hit`: player loses a heart or receives damaging feedback from a trap.
-- `risky_path_chosen`: player chooses the higher-risk route.
-- `safe_path_chosen`: player chooses the lower-risk route.
-- `feedback_positive`: runner gives positive feedback such as reward, combo, or success.
-- `feedback_negative`: runner gives negative feedback such as hit, heart loss, or game over.
-- `speed_change`: runner speed changes enough to be analytically relevant.
-- `probe_timeout`: an embedded probe closed without a qualifying response.
-- `marker_sent`: mock marker linked to a source gameplay event.
-- `input_raw`: raw Godot input event captured by `PsychRuntime._input()`.
-- `input_action`: Godot input action mapped from a raw input event.
-- `frame_sample`: optional physics-frame state sample captured by a registered sampler.
+The file stem combines a sanitized game name, start UTC time, process ID, monotonic origin, and session counter. Outputs default to `user://psygodot`. Paths recorded by Godot may use its `user://` notation.
 
-## Input Events
+`recording` initially contains `complete: false` and `status: "recording"`. After orderly closure it contains:
 
-Input events use `event_type: "input"` and do not require `episode_id` or `probe_id`. They are written to the same JSONL stream as gameplay and are aligned through the shared clock fields.
+- `status: "closed"` and `complete`.
+- `accepted_events` and `written_events`, including lifecycle event rows.
+- `dropped_events` and `dropped_samples`, recorded separately.
+- `write_error`, with Godot `OK` represented by `0`.
 
-`input_raw` payloads may include:
+`complete` is true only when accepted and written counts match, both drop counts are zero, and no write error occurred. These counters describe transport integrity, not the scientific sufficiency of an adapter's event vocabulary. A saturated queue may omit lifecycle events too; offline validation will flag their absence.
 
-- `input.class`
-- `input.device`
-- `input.keycode`
-- `input.physical_keycode`
-- `input.button_index`
-- `input.axis`
-- `input.axis_value`
-- `input.position`
-- `input.pressed`
-- `input.released`
-- `input.echo`
+## Offline interpretation
 
-`input_action` payloads may include:
+Read the manifest with its JSONL file. Verify unique IDs, source-time order, constant time origin, paired lifecycle scopes, linked marker references, and final recording counts. A valid stream alone cannot prove that events were not dropped; the final manifest is required for that check.
 
-- `input.action`
-- `input.pressed`
-- `input.released`
-- `input.strength`
-
-Input events normally do not emit linked marker events. Marker events remain reserved for configured semantic events and timing probes.
-
-## Frame Sample Events
-
-Frame samples use `event_type: "frame"` and `event_tag: "frame_sample"`. They are optional and do not require `episode_id` or `probe_id`. The temple runner sampler writes:
-
-- `sample.game.mode`
-- `sample.game.score`
-- `sample.game.distance`
-- `sample.game.speed`
-- `sample.game.hearts`
-- `sample.game.combo`
-- `sample.game.gems`
-- `sample.game.near_misses`
-- `sample.player.lane`
-- `sample.player.x`, `sample.player.y`, `sample.player.z`
-- `sample.player.position`
-- `sample.player.sliding`
-- `sample.player.invulnerable`
-
-## Runner Payload Conventions
-
-Runner payloads should use stable names where available:
-
-- `lane`: current lane index.
-- `from_lane` and `to_lane`: lane-change source and destination.
-- `distance_m`: run distance when the event occurred.
-- `speed_mps`: runner speed when the event occurred.
-- `score`, `combo`, `hearts`: visible game state.
-- `object_id`, `object_type`, `object_lane`: spawned reward, obstacle, hazard, or path-choice object.
-- `response_latency_ms`: latency from onset or probe start to response.
-- `outcome`: `success`, `hit`, `miss`, `timeout`, `collected`, or `avoided`.
-
-See `godot_project/demo/temple_runner/docs/event_schema_runner.md` for demo-local schema notes.
+HED mapping is deferred. Retain stable source facts and a versioned game event vocabulary so future offline conversion can derive HED annotations without adding work to gameplay capture. No HED annotation or validation runs in the game loop.
