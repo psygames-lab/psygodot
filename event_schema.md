@@ -29,7 +29,7 @@ Raw input payload fields are direct members: `class`, `device`, and applicable n
 
 ## Session manifest
 
-The manifest contains `schema_version: "0.2.0"`, `session_id`, `game_name`, `study_id`, `participant_label`, `build_version`, `platform`, `time_origin_usec`, `wall_time_iso`, `metadata`, `output_dir`, `file_stem`, `raw_events_path`, and `manifest_path`. UTC wall time is captured once at session start. No participant hash is generated.
+The manifest contains `schema_version: "0.2.0"`, `session_id`, `game_name`, `study_id`, `participant_label`, `build_version`, `platform`, `time_origin_usec`, `wall_time_iso`, `metadata`, `output_dir`, `file_stem`, `raw_events_path`, and `manifest_path`. UTC wall time is captured once at session start. No participant hash is generated. When using a generated marker configuration, `metadata.event_catalog` contains its `{id, version}`; the offline converter requires this identity to match a catalog-generated mapping.
 
 The file stem combines a sanitized game name, start UTC time, process ID, monotonic origin, and session counter. Outputs default to `user://psygodot`. Paths recorded by Godot may use its `user://` notation.
 

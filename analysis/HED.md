@@ -1,8 +1,9 @@
 # Offline HED conversion
 
 The converter is a command-line Python tool, not a Godot dependency. It accepts
-one complete schema 0.2.0 JSONL session and its manifest, a game/study mapping,
-and a standard HED sidecar. It has no game-specific rules, dynamic plugins, or
+one complete schema 0.2.0 JSONL session and its manifest, a generated game/study mapping,
+and a standard HED sidecar. Both files come from the [event catalog](EVENT_CATALOG.md);
+do not maintain them separately. It has no game-specific rules, dynamic plugins, or
 legacy-data upgrade path. The source recording is never rewritten.
 
 ## Run
@@ -28,8 +29,11 @@ working without network access. No dependency or schema download runs in Godot.
 
 ## Minimal mapping contract
 
-Each game keeps `analysis/hed/mapping.json` and `events.json`. The latter is a
-standard HED sidecar, not a PsyGodot-specific annotation language. A mapping is:
+Each game generates `analysis/hed/mapping.json` and `events.json` from
+`telemetry/event_catalog.json`. The latter output is a standard HED sidecar,
+not a PsyGodot-specific annotation language. The low-level mapping format is
+illustrated below; generated mappings also contain `catalog_id` and
+`catalog_version`, checked against `manifest.metadata.event_catalog`:
 
 ```json
 {

@@ -6,12 +6,19 @@ the offline HED work.
 
 ## What exists today
 
-`trigger_manager.gd` maps an event tag to a study-defined code. The runtime's
+The editable [event catalog](../analysis/EVENT_CATALOG.md) defines each event's
+matching conditions, optional study code, and offline HED interpretation in one
+place. Its generator produces a small runtime marker configuration without HED
+content. `trigger_manager.gd` matches event type/tag and any payload conditions
+from that configuration, including distinctions such as manual versus replay.
+The runtime's
 `log_event_with_marker()` records a second JSONL row with `event_type=marker`,
 `event_tag=marker_sent`, and `payload.marker.driver=mock`. Its timestamp equals
 the source event timestamp. Despite the historical name `marker_sent`, this is
 only a simulated software record: no device is contacted and there is no send
-time or EEG acknowledgement. An empty marker map generates no marker rows.
+time or EEG acknowledgement. Without configured marker rules, or when a game
+uses ordinary event logging rather than marker simulation, no marker rows are
+generated. Both example games leave simulation off unless explicitly requested.
 
 HED mappings must not interpret these mock records as physical trigger edges.
 They can explicitly exclude them with that reason, or retain them as simulated

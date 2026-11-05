@@ -14,9 +14,10 @@ from hed import TabularInput, get_printable_issue_string, load_schema_version
 from hed.errors import HedFileError
 
 from validate_events import load_jsonl, validate_events
+from generate_catalog import same_value
 
 
-CONVERTER_VERSION = "0.1.0"
+CONVERTER_VERSION = "0.2.0"
 RESERVED = ("onset", "source_event_id", "event_type", "event_tag")
 MISSING = object()
 
@@ -81,7 +82,7 @@ def map_events(events: list[dict], mapping: dict) -> tuple[list[dict], dict]:
     rule_counts = [0] * len(rules)
     for event in events:
         matches = [i for i, rule in enumerate(rules)
-                   if all(lookup(event, key) == value for key, value in rule["match"].items())]
+                   if all(same_value(lookup(event, key), value) for key, value in rule["match"].items())]
         if len(matches) != 1:
             kind = "unmapped" if not matches else "ambiguous"
             counts[f"{kind}_events"] += 1
@@ -140,6 +141,11 @@ def convert(raw: Path, manifest_path: Path, mapping_path: Path, output: Path) ->
         report.update({key: mapping[key] for key in
                        ("mapping_version", "game_name", "raw_schema_version", "hed_schema_version")})
         report["session_id"] = manifest["session_id"]
+        if "catalog_id" in mapping:
+            report.update({key: mapping[key] for key in ("catalog_id", "catalog_version")})
+            expected = {"id": mapping["catalog_id"], "version": mapping["catalog_version"]}
+            if manifest.get("metadata", {}).get("event_catalog") != expected:
+                raise ValueError("recorded event_catalog identity/version does not match generated mapping")
         if manifest["schema_version"] != mapping["raw_schema_version"] or mapping["raw_schema_version"] != "0.2.0":
             raise ValueError("mapping and manifest must use raw schema 0.2.0")
         if manifest["game_name"] != mapping["game_name"]:

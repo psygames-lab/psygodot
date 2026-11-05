@@ -33,10 +33,18 @@ func _ready() -> void:
 func start_session(config: Dictionary) -> Dictionary:
 	if _shutdown or _writer_error != OK:
 		return {}
+	var marker_config: Dictionary = config.get("marker_config", {})
+	if not marker_config.is_empty() and marker_config["game_name"] != config.get("game_name", "godot_game"):
+		return {}
 	if session_active:
 		end_session("restarted")
 	clock.start_session()
 	var context: Dictionary = session_manager.start_session(config, clock.session_start_usec)
+	trigger_manager.configure(marker_config)
+	if not marker_config.is_empty():
+		context["metadata"]["event_catalog"] = {
+			"id": marker_config["catalog_id"], "version": marker_config["catalog_version"]
+		}
 	logger.queue_capacity = maxi(4, int(config.get("queue_capacity", 4096)))
 	logger.sample_reserve = maxi(0, int(config.get("sample_reserve", 256)))
 	if not logger.open(context):
@@ -44,7 +52,6 @@ func start_session(config: Dictionary) -> Dictionary:
 	capture_input = bool(config.get("capture_input", false))
 	capture_input_actions = bool(config.get("capture_input_actions", false))
 	_actions = Array(InputMap.get_actions()) if capture_input_actions else []
-	trigger_manager.marker_map = config.get("marker_map", {}).duplicate(true)
 	_frame_sample_counter = 0
 	session_active = true
 	set_process_input(capture_input)
@@ -97,11 +104,11 @@ func end_probe(probe_id: String, metadata: Dictionary) -> void:
 	log_event("probe", "probe_end", {"probe_id": probe_id, "metadata": metadata})
 	probe_manager.clear()
 
-func log_event_with_marker(event_type: String, event_tag: String, payload: Dictionary) -> Dictionary:
-	var source: Dictionary = log_event(event_type, event_tag, payload)
+func log_event_with_marker(event_type: String, event_tag: String, payload: Dictionary, timestamp_usec: int = -1) -> Dictionary:
+	var source: Dictionary = log_event(event_type, event_tag, payload, timestamp_usec)
 	if source.is_empty():
 		return source
-	var marker: Dictionary = trigger_manager.marker_for(event_tag)
+	var marker: Dictionary = trigger_manager.marker_for(source)
 	if not marker.is_empty():
 		marker["linked_event_id"] = source["event_id"]
 		log_event("marker", "marker_sent", {"marker": marker}, source["timestamp_usec"])

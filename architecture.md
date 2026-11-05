@@ -35,11 +35,11 @@ If a producer buffer fills, capture returns an empty dictionary and increments a
 | `sample_reserve` | `256` | Space withheld from optional frame samples |
 | `capture_input` | `false` | Observe raw Godot input without consuming it |
 | `capture_input_actions` | `false` | Also record mapped actions when raw capture is on |
-| `marker_map` | `{}` | Study-defined mock marker codes by event tag |
+| `marker_config` | `{}` | Generated catalog identity, event selectors and optional mock marker codes |
 
 Frame sampling requires `register_frame_sampler(callable, interval)`; the interval is measured in physics frames. Return a small JSON-compatible dictionary. Use `unregister_frame_sampler()` to stop. Sampling and raw input should be enabled only when required by the study.
 
-Episodes and probes are optional, single active scopes. Pair their start/end calls explicitly before session closure. Markers are software links only: `log_event_with_marker` records a mock marker at the source event timestamp when its tag has a configured code.
+Episodes and probes are optional, single active scopes. Pair their start/end calls explicitly before session closure. Markers are software links only: `log_event_with_marker` records a mock marker at the source event timestamp when its type, tag and configured payload conditions match. The runtime prepares these conditions from generated `marker_config` at session start; ordinary `log_event` does not match marker rules. No HED information is present in that configuration. See [event catalog](analysis/EVENT_CATALOG.md).
 
 Physical EEG trigger sending is not implemented. The [trigger design](docs/eeg_triggers.md)
 separates future device transport from disk writing and distinguishes source,

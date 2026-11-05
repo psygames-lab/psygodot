@@ -110,6 +110,33 @@ class ConvertHedTests(unittest.TestCase):
         self.assertFalse(report["success"])
         self.assertIn("game_name", str(report["errors"]))
 
+    def test_catalog_identity_matches_recording_and_is_reported(self):
+        self.mapping.update(catalog_id="example.default", catalog_version="1.0.0")
+        self.manifest["metadata"] = {"event_catalog": {"id": "example.default", "version": "1.0.0"}}
+        report = self.run_conversion()
+        self.assertTrue(report["success"], report)
+        self.assertEqual((report["catalog_id"], report["catalog_version"]), ("example.default", "1.0.0"))
+
+    def test_different_catalog_version_is_not_silently_used(self):
+        self.mapping.update(catalog_id="example.default", catalog_version="2.0.0")
+        self.manifest["metadata"] = {"event_catalog": {"id": "example.default", "version": "1.0.0"}}
+        report = self.run_conversion()
+        self.assertFalse(report["success"])
+        self.assertIn("identity/version", str(report["errors"]))
+
+    def test_missing_catalog_identity_is_not_invented(self):
+        self.mapping.update(catalog_id="example.default", catalog_version="1.0.0")
+        report = self.run_conversion()
+        self.assertFalse(report["success"])
+        self.assertIn("identity/version", str(report["errors"]))
+
+    def test_boolean_selector_does_not_match_numeric_one(self):
+        self.mapping["rules"][-1]["match"]["payload.mode"] = True
+        self.events[1]["payload"]["mode"] = 1
+        report = self.run_conversion()
+        self.assertFalse(report["success"])
+        self.assertEqual(report["unmapped_events"], 1)
+
     def test_legacy_schema_is_not_implicitly_upgraded(self):
         self.mapping["raw_schema_version"] = "0.1.0"
         self.manifest["schema_version"] = "0.1.0"

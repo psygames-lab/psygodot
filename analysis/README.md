@@ -11,6 +11,10 @@ The validator checks record shape, unique event IDs, monotonic source timestamps
 
 With `--manifest`, it also checks schema version, time origin, closed/complete status, accepted and written counts against the stream, zero drops, and write errors. Without the manifest, a structurally valid stream is not proof of complete capture. The command emits a JSON report and exits nonzero on invalid data.
 
+Maintain [one event catalog](EVENT_CATALOG.md) per game/study and generate the
+marker configuration and HED mapping/sidecar with `generate_catalog.py`.
+Generated files are checked with `--check`, not maintained by hand.
+
 For HED conversion, install `analysis/requirements.txt` in a Python environment;
 the Godot runtime does not need it. See [HED.md](HED.md) for the mapping contract
 and reproduction commands for both game examples.
